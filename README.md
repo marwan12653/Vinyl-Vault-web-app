@@ -4,9 +4,9 @@
 ---
 
 ## **🛠 The Tech Stack**
-To satisfy the **Technical Requirements** of the Web Engineering course, we utilized:
+To satisfy the **Requirements** of the project, we utilized:
 
-* [cite_start]**Frontend:** **React.js** (Mandatory) for building a component-based UI[cite: 8].
+* [cite_start]**Frontend:** **React.js** for building a component-based UI[cite: 8].
 * **Animations:** **Motion** for hardware-accurate physics simulations.
 * **Styling:** **Tailwind CSS v4** for a utility-first, performant indie aesthetic.
 * [cite_start]**Backend:** **Node.js/Next.js** API routes to handle RESTful data fetching[cite: 9].
@@ -21,7 +21,7 @@ To satisfy the **Technical Requirements** of the Web Engineering course, we util
 
 1.  [cite_start]**Client Layer:** React handles the state and triggers complex animations via Motion[cite: 23].
 2.  [cite_start]**API Layer:** RESTful endpoints serve album metadata and asset paths[cite: 25].
-3.  [cite_start]**Data Layer:** A real database ensures no mock or static data is used for the final release[cite: 10].
+3.  [cite_start]**Data Layer:** A database that ensures no mock data is used.[cite: 10].
 
 ---
 
@@ -33,15 +33,19 @@ To satisfy the **Technical Requirements** of the Web Engineering course, we util
 
 ---
 
+
 ## **🚀 Installation & Local Dev**
-To run this project locally, follow these steps:
+To set up the development environment locally:
 
 ```bash
-# 1. Clone the vault
+# 1. Clone the repository
 git clone [https://github.com/YOUR_USER/vinyl-vault.git](https://github.com/YOUR_USER/vinyl-vault.git)
 
-# 2. Install dependencies
+# 2. Install core dependencies
 npm install
 
-# 3. Fire up the platter
+# 3. Install project-specific plugins
+npm install motion lucide-react @tailwindcss/vite tailwindcss
+
+# 4. Start the development server
 npm run dev
