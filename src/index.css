@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+/* Keep your custom vinyl shiny effect below it */
+.vinyl-gradient {
+  background: repeating-radial-gradient(
+    circle,
+    #080808 0%,
+    #080808 2px,
+    #121212 3px,
+    #121212 4px
+  );
+}
