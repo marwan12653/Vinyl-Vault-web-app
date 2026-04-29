@@ -187,10 +187,21 @@ export default function VinylVault() {
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-white/[0.02] backdrop-blur-3xl rounded-[40px] p-8 border border-white/5 shadow-2xl flex flex-col lg:flex-row items-center gap-12">
                   <div className="relative shrink-0">
                      <div className="relative bg-[#121212] p-8 rounded-full shadow-2xl border-b-8 border-black">
-                        <motion.div animate={{ rotate: isPlaying ? 360 : 0 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} className="w-56 h-56 md:w-64 md:h-64 rounded-full bg-black flex items-center justify-center relative">
-                          <img src={selected.cover} className="w-20 h-20 md:w-28 md:h-28 rounded-full border-[6px] border-black z-20 object-cover" />
+                        {/* SEAMLESS ROTATION FIX APPLIED BELOW */}
+                        <motion.div 
+                           animate={{ rotate: isPlaying ? 360 : 0 }} 
+                           transition={{ 
+                             duration: 4, 
+                             repeat: Infinity, 
+                             ease: "linear", 
+                             repeatType: "loop" 
+                           }} 
+                           className="w-56 h-56 md:w-64 md:h-64 rounded-full bg-black flex items-center justify-center relative overflow-hidden"
+                        >
+                           <div className="absolute inset-0 bg-[repeating-radial-gradient(circle,_transparent_0,_transparent_2px,_rgba(255,255,255,0.03)_3px)] opacity-40" />
+                           <img src={selected.cover} className="w-20 h-20 md:w-28 md:h-28 rounded-full border-[6px] border-black z-20 object-cover" />
                         </motion.div>
-                        <motion.div animate={{ rotate: isPlaying ? -25 : 0 }} className="absolute top-8 right-0 w-36 md:w-44 h-3 bg-gradient-to-r from-zinc-500 to-zinc-700 origin-right rounded-full z-30" />
+                        <motion.div animate={{ rotate: isPlaying ? -25 : 0 }} transition={{ type: "spring", stiffness: 30, damping: 12 }} className="absolute top-8 right-0 w-36 md:w-44 h-3 bg-gradient-to-r from-zinc-500 to-zinc-700 origin-right rounded-full z-30 shadow-xl" />
                      </div>
                   </div>
 
@@ -218,6 +229,7 @@ export default function VinylVault() {
                 </motion.div>
               )}
 
+              {/* GENRE VIEW REMAINS THE SAME */}
               {view === 'genres' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {GENRE_DATA.map((g) => (
@@ -234,7 +246,7 @@ export default function VinylVault() {
                                   <img src={album.cover} className="w-12 h-12 rounded-lg object-cover" />
                                   <span className="text-sm font-bold">{album.title}</span>
                                 </div>
-                                <button onClick={() => handleVaultToggle(album, artist.name)} className={`p-2 rounded-full border ${isAdded ? 'bg-amber-500 text-black' : 'hover:bg-amber-500'}`}>
+                                <button onClick={() => handleVaultToggle(album, artist.name)} className={`p-2 rounded-full border transition-all ${isAdded ? 'bg-amber-500 text-black' : 'hover:bg-amber-500'}`}>
                                   {isAdded ? <Check size={16}/> : <Plus size={16}/>}
                                 </button>
                               </div>
