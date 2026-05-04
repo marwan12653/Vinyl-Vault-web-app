@@ -6,22 +6,22 @@
 ## **🛠 The Tech Stack**
 To satisfy the **Requirements** of the project, we utilized:
 
-* **Frontend:** **React.js** for building a component-based UI[cite: 8].
+* **Frontend:** **React.js** for building a component-based UI.
 * **Animations:** **Motion** for hardware-accurate physics simulations.
 * **Styling:** **Tailwind CSS v4** for a utility-first, performant indie aesthetic.
-* **Backend:** **Node.js/Next.js** API routes to handle RESTful data fetching[cite: 9].
-* **Database:** Integrated with a real database (**MongoDB**) to serve album metadata[cite: 10].
+* **Backend:** **Node.js/Next.js** API routes to handle RESTful data fetching.
+* **Database:** Integrated with a real database (**MongoDB**) to serve album metadata.
 
 ---
 
 ## **🏗 System Architecture**
-The application follows a standard **Frontend-Backend-Database** flow to ensure scalability and separation of concerns[cite: 23].
+The application follows a standard **Frontend-Backend-Database** flow to ensure scalability and separation of concerns.
 
 
 
-1.  **Client Layer:** React handles the state and triggers complex animations via Motion[cite: 23].
-2.  **API Layer:** RESTful endpoints serve album metadata and asset paths[cite: 25].
-3.  **Data Layer:** A database that ensures no mock data is used.[cite: 10].
+1.  **Client Layer:** React handles the state and triggers complex animations via Motion.
+2.  **API Layer:** RESTful endpoints serve album metadata and asset paths.
+3.  **Data Layer:** A database that ensures no mock data is used.
 
 ---
 
@@ -39,7 +39,7 @@ To set up the development environment locally:
 
 ```bash
 # 1. Clone the repository
-git clone [https://github.com/YOUR_USER/vinyl-vault.git](https://github.com/YOUR_USER/vinyl-vault.git)
+git clone [https://github.com/marwan12653/vinyl-vault-web-app.git]
 
 # 2. Install core dependencies
 npm install
