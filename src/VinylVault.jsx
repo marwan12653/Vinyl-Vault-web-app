@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Pause, Music, Search, Plus, Check, X, Settings, 
   LogIn, UserPlus, LogOut, ShieldCheck, Mail, Lock, ArrowLeft,
-  SkipBack, SkipForward
+  SkipBack, SkipForward, Heart, Info
 } from 'lucide-react';
 
 // 1. NESTED DATA STRUCTURE (The Archive)
@@ -116,7 +116,7 @@ export default function VinylVault() {
 
   const formatTime = (t) => `${Math.floor(t / 60)}:${Math.floor(t % 60).toString().padStart(2, '0')}`;
 
-  // 2. AUDIO SYNCHRONIZATION
+  // AUDIO SYNCHRONIZATION
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !selected) return;
@@ -136,7 +136,6 @@ export default function VinylVault() {
     }
   };
 
-  // 3. NAVIGATION & SEEKING
   const handleNext = () => {
     if (!selected) return;
     if (activeTrackIndex < selected.tracks.length - 1) {
@@ -179,7 +178,6 @@ export default function VinylVault() {
     }
   };
 
-  // 4. AUTH HANDLERS
   const handleSignUpSubmit = (e) => {
     e.preventDefault();
     if (registeredUsers.find(u => u.email === email)) {
@@ -231,6 +229,7 @@ export default function VinylVault() {
         <div className="flex items-center gap-8 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
           <button onClick={() => setView('player')} className={`transition-colors ${view === 'player' ? 'text-amber-500' : 'hover:text-white'}`}>Player</button>
           <button onClick={() => setView('genres')} className={`transition-colors ${view === 'genres' ? 'text-amber-500' : 'hover:text-white'}`}>Genres</button>
+          <button onClick={() => setView('about')} className={`transition-colors ${view === 'about' ? 'text-amber-500' : 'hover:text-white'}`}>About</button>
           <button onClick={() => setView('settings')} className={`transition-colors ${view === 'settings' ? 'text-amber-500' : 'hover:text-white'}`}>Settings</button>
         </div>
         
@@ -272,21 +271,21 @@ export default function VinylVault() {
               collection.map((album) => (
                 <motion.div 
                   key={album.id} onClick={() => { setSelected(album); setView('player'); }}
-                  className={`group flex items-center p-3 rounded-xl cursor-pointer transition-all border relative ${selected?.title === album.title ? 'bg-white/10 border-white/20' : 'bg-transparent border-transparent hover:bg-white/5'}`}
+                  className={`group flex items-center p-3 rounded-xl cursor-pointer transition-all border relative ${selected?.title === album.title ? 'bg-white/10 border-white/20 shadow-md' : 'bg-transparent border-transparent hover:bg-white/5'}`}
                 >
                   <img src={album.cover} className="w-12 h-12 rounded-lg object-cover" />
                   <div className="ml-4"><h3 className="font-bold text-xs truncate w-32">{album.title}</h3><p className="text-zinc-500 text-[8px] uppercase tracking-widest">{album.artist}</p></div>
-                  <button onClick={(e) => { e.stopPropagation(); handleVaultToggle(album); }} className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 hover:text-red-500"><X size={14} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); handleVaultToggle(album); }} className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-opacity"><X size={14} /></button>
                 </motion.div>
               ))
             )}
           </aside>
 
-          {/* MAIN CONTENT Area */}
+          {/* MAIN CONTENT */}
           <section className="xl:col-span-9">
             <AnimatePresence mode="wait">
               
-              {/* 5. PLAYER VIEW */}
+              {/* PLAYER VIEW */}
               {view === 'player' && (
                 selected ? (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-white/[0.02] backdrop-blur-3xl rounded-[40px] p-10 border border-white/5 shadow-2xl flex flex-col lg:flex-row items-center gap-12">
@@ -304,36 +303,33 @@ export default function VinylVault() {
                       <h2 className="text-5xl font-black mb-1 tracking-tighter">{selected.tracks[activeTrackIndex].name}</h2>
                       <p className="text-amber-500 font-mono text-[10px] uppercase mb-8 tracking-[0.3em]">{selected.artist} — {selected.title}</p>
                       
-                      {/* PROGRESS BAR */}
                       <div className="space-y-1 mb-8 max-w-md mx-auto lg:mx-0">
-                        <input 
-                          type="range" min="0" max={duration || 0} value={currentTime} 
-                          onChange={(e) => audioRef.current.currentTime = e.target.value} 
-                          className="w-full h-1 bg-zinc-800 rounded-lg appearance-none accent-amber-500 cursor-pointer" 
-                        />
+                        <input type="range" min="0" max={duration || 0} value={currentTime} onChange={(e) => audioRef.current.currentTime = e.target.value} className="w-full h-1 bg-zinc-800 rounded-lg appearance-none accent-amber-500 cursor-pointer" />
                         <div className="flex justify-between text-[9px] font-mono text-zinc-600 uppercase tracking-widest">
                           <span>{formatTime(currentTime)}</span>
                           <span>{formatTime(duration)}</span>
                         </div>
                       </div>
 
-                      {/* PLAYBACK CONTROLS */}
                       <div className="flex items-center justify-center lg:justify-start gap-6 mb-10">
                         <button onClick={handlePrev} className="text-zinc-500 hover:text-white transition-colors"><SkipBack size={24} /></button>
                         <button onClick={() => handleSeek(-10)} className="text-zinc-600 hover:text-amber-500 transition-colors text-[9px] font-bold font-mono">-10S</button>
-                        
-                        <button onClick={togglePlay} className="bg-amber-500 text-black p-6 rounded-full hover:scale-110 transition-all shadow-xl shadow-amber-500/20">
-                          {isPlaying ? <Pause size={32} fill="black" /> : <Play size={32} className="ml-1" fill="black" />}
-                        </button>
-
+                        <button onClick={togglePlay} className="bg-amber-500 text-black p-6 rounded-full hover:scale-110 transition-all shadow-xl shadow-amber-500/20">{isPlaying ? <Pause size={32} fill="black" /> : <Play size={32} className="ml-1" fill="black" />}</button>
                         <button onClick={() => handleSeek(10)} className="text-zinc-600 hover:text-amber-500 transition-colors text-[9px] font-bold font-mono">+10S</button>
                         <button onClick={handleNext} className="text-zinc-500 hover:text-white transition-colors"><SkipForward size={24} /></button>
                       </div>
                       
-                      <div className="space-y-2 max-h-40 overflow-y-auto pr-2 bg-black/20 rounded-2xl p-4 border border-white/5">
+                      {/* TRACK LIST (Always visible in Player view when an album is selected) */}
+                      <div className="space-y-2 max-h-48 overflow-y-auto pr-2 bg-black/20 rounded-2xl p-4 border border-white/5 scrollbar-hide">
+                        <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-3">Tracklist</p>
                         {selected.tracks.map((t, i) => (
-                          <div key={i} onClick={() => setActiveTrackIndex(i)} className={`flex justify-between text-[11px] py-2 border-b border-white/5 cursor-pointer transition-all ${activeTrackIndex === i ? 'text-amber-500' : 'opacity-40 hover:opacity-100'}`}>
-                            <span>{i+1}. {t.name}</span>
+                          <div 
+                            key={i} 
+                            onClick={() => setActiveTrackIndex(i)} 
+                            className={`flex justify-between items-center text-[11px] py-2 px-3 rounded-lg cursor-pointer transition-all ${activeTrackIndex === i ? 'bg-amber-500/10 text-amber-500' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}
+                          >
+                            <span className="font-medium">{i+1}. {t.name}</span>
+                            {activeTrackIndex === i && isPlaying && <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
                           </div>
                         ))}
                       </div>
@@ -344,35 +340,68 @@ export default function VinylVault() {
                 )
               )}
 
-              {/* LOGIN VIEW */}
+              {/* ABOUT VIEW */}
+              {view === 'about' && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-3xl mx-auto space-y-12">
+                  <div className="text-center space-y-4">
+                    <h2 className="text-5xl font-black italic tracking-tighter" style={{ fontFamily: "'Permanent Marker', cursive" }}>Project Overview</h2>
+                    <p className="text-amber-500 font-mono text-[10px] uppercase tracking-[0.4em]">A modern digital archive for physical music culture.</p>
+                  </div>
+                  
+                  <div className="bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl leading-relaxed text-zinc-400 text-sm">
+                    <p className="mb-6">
+                      <span className="text-amber-500 font-bold">Vinyl Vault</span> is a web application designed to simulate the tactile experience of a physical music collection. By integrating the HTML5 Audio API with motion physics, we aim to bridge the gap between high-fidelity digital streaming and the traditional turntable aesthetic.
+                    </p>
+                    <p>
+                      This platform allows users to explore curated genres, manage a personalized digital vault, and engage with a playback interface that prioritizes album-centric listening over the randomized nature of modern algorithms.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                    <div className="p-8 bg-white/[0.03] rounded-3xl border border-white/5 text-center">
+                      <p className="text-zinc-500 text-[9px] uppercase font-bold tracking-widest mb-3">Development Team</p>
+                      <p className="text-lg font-black italic">Marwan Mohamed</p>
+                      <p className="text-lg font-black italic">& Ahmed Osama</p>
+                    </div>
+                    <div className="p-8 bg-white/[0.03] rounded-3xl border border-white/5 text-center">
+                      <p className="text-zinc-500 text-[9px] uppercase font-bold tracking-widest mb-3">Academic Supervision</p>
+                      <p className="text-md font-bold">Dr. Noha Ghatawry</p>
+                      <p className="text-md font-bold">Eng. Seif Mansour</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-center items-center gap-2 text-zinc-700 text-[10px] uppercase tracking-widest font-bold py-10">
+                    <Info size={14} className="text-amber-500" /> <span>Phase 1 Prototype // 2026</span>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* LOGIN / SIGNUP / GENRES / SETTINGS remains as before */}
               {view === 'login' && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl text-center">
-                   <h2 className="text-4xl font-black mb-6">Welcome Back</h2>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 text-center">
+                   <h2 className="text-4xl font-black mb-6">Sign In</h2>
                    <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
                       <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
                       <input required type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
-                      {authError && <p className="text-red-500 text-[10px] font-bold uppercase tracking-tight">{authError}</p>}
-                      <button type="submit" className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-amber-500 transition-all uppercase tracking-widest text-xs">Sign In</button>
-                      <p className="text-zinc-600 text-[10px] mt-4 text-center">Not a member? <span className="text-amber-500 cursor-pointer" onClick={() => setView('signup')}>Register</span></p>
+                      {authError && <p className="text-red-500 text-[10px] font-bold uppercase">{authError}</p>}
+                      <button type="submit" className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-amber-500 transition-all uppercase tracking-widest text-xs">Login</button>
+                      <p className="text-zinc-600 text-[10px] mt-4 text-center">Need an account? <span className="text-amber-500 cursor-pointer" onClick={() => setView('signup')}>Register</span></p>
                    </form>
                 </motion.div>
               )}
 
-              {/* SIGN UP VIEW */}
               {view === 'signup' && (
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl text-center">
-                   <h2 className="text-4xl font-black mb-2 italic tracking-tighter">Join Vault</h2>
-                   <p className="text-zinc-500 text-sm mb-10">Start your vinyl collection journey today.</p>
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 text-center">
+                   <h2 className="text-4xl font-black mb-6 italic tracking-tighter">Join Vault</h2>
                    <form onSubmit={handleSignUpSubmit} className="space-y-4 text-left">
                       <input required type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
                       <input required type="password" placeholder="Create Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
-                      {authError && <p className="text-red-500 text-[10px] font-bold uppercase tracking-tight">{authError}</p>}
-                      <button type="submit" className="w-full bg-amber-500 text-black font-bold py-4 rounded-2xl hover:brightness-110 transition-all uppercase tracking-widest text-xs">Register</button>
+                      {authError && <p className="text-red-500 text-[10px] font-bold uppercase">{authError}</p>}
+                      <button type="submit" className="w-full bg-amber-500 text-black font-bold py-4 rounded-2xl hover:brightness-110 uppercase tracking-widest text-xs">Register</button>
                    </form>
                 </motion.div>
               )}
 
-              {/* GENRES VIEW */}
               {view === 'genres' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {GENRE_DATA.map((g) => (
@@ -402,7 +431,6 @@ export default function VinylVault() {
                 </motion.div>
               )}
 
-              {/* SETTINGS VIEW */}
               {view === 'settings' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="max-w-2xl bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl">
                   <h2 className="text-3xl font-black mb-10 tracking-tight">System Preferences</h2>
