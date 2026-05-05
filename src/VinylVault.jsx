@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Pause, Music, Search, Plus, Check, X, Settings, 
-  LogIn, UserPlus, LogOut, ShieldCheck, Mail, Lock, ArrowLeft 
+  LogIn, UserPlus, LogOut, ShieldCheck, Mail, Lock, ArrowLeft,
+  SkipBack, SkipForward
 } from 'lucide-react';
 
-// 1. NESTED DATA STRUCTURE (Discovery Archive)
+// 1. NESTED DATA STRUCTURE (The Archive)
 const GENRE_DATA = [
   {
     name: "Indie Rock",
@@ -20,6 +21,17 @@ const GENRE_DATA = [
             { name: "The Modern Age", audio: "/modern_age.wav" },
             { name: "Soma", audio: "/soma.wav" },
             { name: "Barely Legal", audio: "/barely_legal.wav" }
+          ]
+        }]
+      },
+      {
+        name: "The Symposium",
+        albums: [{ 
+          title: "The Symposium", 
+          cover: "/the_symposium.png", 
+          tracks: [
+            { name: "The Physical Attractions", audio: "/the_symposium_the_physical_attraction.wav" },
+            { name: "Cowboy", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" }
           ]
         }]
       },
@@ -61,11 +73,27 @@ const GENRE_DATA = [
         }]
       }
     ]
+  },
+  {
+    name: "Indie / Alt",
+    artists: [
+      {
+        name: "Peach Pit",
+        albums: [{ 
+          title: "Being So Normal", 
+          cover: "/being_so_normal.jpg", 
+          tracks: [
+            { name: "Peach Pit", audio: "/peach_pit.wav" },
+            { name: "Tommy's Party", audio: "https://p.scdn.co/mp3-preview/13054f15697223b24619d9b68f5661d40a2325c3" }
+          ]
+        }]
+      }
+    ]
   }
 ];
 
 export default function VinylVault() {
-  // --- STATE MANAGEMENT ---
+  // --- CORE STATE ---
   const [collection, setCollection] = useState([]);
   const [view, setView] = useState('genres'); 
   const [selected, setSelected] = useState(null);
@@ -75,22 +103,20 @@ export default function VinylVault() {
   const [duration, setDuration] = useState(0);
   const audioRef = useRef(null);
 
-  // --- AUTH & USER DATABASE STATE ---
+  // --- AUTH & USER DB STATE ---
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [registeredUsers, setRegisteredUsers] = useState([
     { email: "marwan@vault.com", password: "123", name: "Marwan" } 
   ]);
-
-  // Form States
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
 
   const formatTime = (t) => `${Math.floor(t / 60)}:${Math.floor(t % 60).toString().padStart(2, '0')}`;
 
-  // 2. AUDIO SYNCHRONIZATION ENGINE
+  // 2. AUDIO SYNCHRONIZATION
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !selected) return;
@@ -110,7 +136,32 @@ export default function VinylVault() {
     }
   };
 
-  // 3. VAULT LOGIC
+  // 3. NAVIGATION & SEEKING
+  const handleNext = () => {
+    if (!selected) return;
+    if (activeTrackIndex < selected.tracks.length - 1) {
+      setActiveTrackIndex(prev => prev + 1);
+    } else {
+      setActiveTrackIndex(0); 
+    }
+    setCurrentTime(0);
+  };
+
+  const handlePrev = () => {
+    if (!selected) return;
+    if (activeTrackIndex > 0) {
+      setActiveTrackIndex(prev => prev - 1);
+    } else {
+      setActiveTrackIndex(selected.tracks.length - 1);
+    }
+    setCurrentTime(0);
+  };
+
+  const handleSeek = (amount) => {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime += amount;
+  };
+
   const handleVaultToggle = (album, artistName) => {
     const exists = collection.find(a => a.title === album.title);
     if (exists) {
@@ -128,11 +179,11 @@ export default function VinylVault() {
     }
   };
 
-  // 4. AUTHENTICATION LOGIC
+  // 4. AUTH HANDLERS
   const handleSignUpSubmit = (e) => {
     e.preventDefault();
     if (registeredUsers.find(u => u.email === email)) {
-      setAuthError("Email already exists!");
+      setAuthError("Email already registered!");
       return;
     }
     const newUser = { email, password, name: email.split('@')[0] };
@@ -151,18 +202,16 @@ export default function VinylVault() {
       setUser(validUser);
       setView('player');
       setAuthError("");
-      setShowProfileMenu(false);
     } else {
-      setAuthError("Invalid credentials!");
+      setAuthError("Invalid email or password.");
     }
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
     setUser(null);
-    setEmail("");
-    setPassword("");
     setView('genres');
+    setShowProfileMenu(false);
   };
 
   return (
@@ -171,9 +220,10 @@ export default function VinylVault() {
         ref={audioRef} 
         onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)} 
         onLoadedMetadata={(e) => setDuration(e.target.duration)} 
+        onEnded={handleNext}
       />
 
-      {/* Navigation Bar */}
+      {/* NAVBAR */}
       <nav className="sticky top-0 z-50 bg-[#080808]/90 backdrop-blur-xl border-b border-white/5 px-8 py-5 flex items-center justify-between">
         <h1 onClick={() => setView('player')} className="text-3xl tracking-tight text-amber-500 cursor-pointer" style={{ fontFamily: "'Permanent Marker', cursive" }}>
           Vinyl Vault
@@ -192,7 +242,6 @@ export default function VinylVault() {
             >
               {isLoggedIn ? <span className="text-amber-500 font-bold text-xs">{user.name[0].toUpperCase()}</span> : <UserPlus size={16} />}
             </div>
-
             <AnimatePresence>
               {showProfileMenu && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 mt-4 w-52 bg-zinc-900 border border-white/10 rounded-2xl p-2 shadow-2xl z-[60]">
@@ -214,7 +263,7 @@ export default function VinylVault() {
       <main className="max-w-7xl mx-auto p-6 md:p-12 relative z-10">
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-12 items-start">
           
-          {/* sidebar */}
+          {/* SIDEBAR */}
           <aside className="xl:col-span-3 flex flex-col gap-4">
             <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest px-2">Your Collection</p>
             {collection.length === 0 ? (
@@ -226,21 +275,21 @@ export default function VinylVault() {
                   className={`group flex items-center p-3 rounded-xl cursor-pointer transition-all border relative ${selected?.title === album.title ? 'bg-white/10 border-white/20' : 'bg-transparent border-transparent hover:bg-white/5'}`}
                 >
                   <img src={album.cover} className="w-12 h-12 rounded-lg object-cover" />
-                  <div className="ml-4"><h3 className="font-bold text-xs truncate w-32">{album.title}</h3><p className="text-zinc-500 text-[8px] uppercase">{album.artist}</p></div>
+                  <div className="ml-4"><h3 className="font-bold text-xs truncate w-32">{album.title}</h3><p className="text-zinc-500 text-[8px] uppercase tracking-widest">{album.artist}</p></div>
                   <button onClick={(e) => { e.stopPropagation(); handleVaultToggle(album); }} className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 hover:text-red-500"><X size={14} /></button>
                 </motion.div>
               ))
             )}
           </aside>
 
-          {/* main view */}
+          {/* MAIN CONTENT Area */}
           <section className="xl:col-span-9">
             <AnimatePresence mode="wait">
               
-              {/* main player */}
+              {/* 5. PLAYER VIEW */}
               {view === 'player' && (
                 selected ? (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-white/[0.02] backdrop-blur-3xl rounded-[40px] p-8 border border-white/5 shadow-2xl flex flex-col lg:flex-row items-center gap-12">
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-white/[0.02] backdrop-blur-3xl rounded-[40px] p-10 border border-white/5 shadow-2xl flex flex-col lg:flex-row items-center gap-12">
                     <div className="relative">
                        <div className="relative bg-[#121212] p-8 rounded-full shadow-2xl border-b-8 border-black">
                           <motion.div animate={{ rotate: isPlaying ? 360 : 0 }} transition={{ duration: 4, repeat: Infinity, ease: "linear", repeatType: "loop" }} className="w-64 h-64 rounded-full bg-black flex items-center justify-center relative overflow-hidden">
@@ -250,13 +299,40 @@ export default function VinylVault() {
                           <motion.div animate={{ rotate: isPlaying ? -25 : 0 }} transition={{ type: "spring", stiffness: 30, damping: 12 }} className="absolute top-8 right-0 w-44 h-3 bg-gradient-to-r from-zinc-500 to-zinc-700 origin-right rounded-full z-30 shadow-xl" />
                        </div>
                     </div>
-                    <div className="w-full">
-                      <h2 className="text-5xl font-black mb-1">{selected.tracks[activeTrackIndex].name}</h2>
-                      <p className="text-amber-500 font-mono text-[10px] uppercase mb-8">{selected.artist} — {selected.title}</p>
-                      <button onClick={togglePlay} className="bg-amber-500 text-black p-5 rounded-full hover:scale-110 mb-8">{isPlaying ? <Pause size={28} /> : <Play size={28} className="ml-1" />}</button>
-                      <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+
+                    <div className="w-full text-center lg:text-left">
+                      <h2 className="text-5xl font-black mb-1 tracking-tighter">{selected.tracks[activeTrackIndex].name}</h2>
+                      <p className="text-amber-500 font-mono text-[10px] uppercase mb-8 tracking-[0.3em]">{selected.artist} — {selected.title}</p>
+                      
+                      {/* PROGRESS BAR */}
+                      <div className="space-y-1 mb-8 max-w-md mx-auto lg:mx-0">
+                        <input 
+                          type="range" min="0" max={duration || 0} value={currentTime} 
+                          onChange={(e) => audioRef.current.currentTime = e.target.value} 
+                          className="w-full h-1 bg-zinc-800 rounded-lg appearance-none accent-amber-500 cursor-pointer" 
+                        />
+                        <div className="flex justify-between text-[9px] font-mono text-zinc-600 uppercase tracking-widest">
+                          <span>{formatTime(currentTime)}</span>
+                          <span>{formatTime(duration)}</span>
+                        </div>
+                      </div>
+
+                      {/* PLAYBACK CONTROLS */}
+                      <div className="flex items-center justify-center lg:justify-start gap-6 mb-10">
+                        <button onClick={handlePrev} className="text-zinc-500 hover:text-white transition-colors"><SkipBack size={24} /></button>
+                        <button onClick={() => handleSeek(-10)} className="text-zinc-600 hover:text-amber-500 transition-colors text-[9px] font-bold font-mono">-10S</button>
+                        
+                        <button onClick={togglePlay} className="bg-amber-500 text-black p-6 rounded-full hover:scale-110 transition-all shadow-xl shadow-amber-500/20">
+                          {isPlaying ? <Pause size={32} fill="black" /> : <Play size={32} className="ml-1" fill="black" />}
+                        </button>
+
+                        <button onClick={() => handleSeek(10)} className="text-zinc-600 hover:text-amber-500 transition-colors text-[9px] font-bold font-mono">+10S</button>
+                        <button onClick={handleNext} className="text-zinc-500 hover:text-white transition-colors"><SkipForward size={24} /></button>
+                      </div>
+                      
+                      <div className="space-y-2 max-h-40 overflow-y-auto pr-2 bg-black/20 rounded-2xl p-4 border border-white/5">
                         {selected.tracks.map((t, i) => (
-                          <div key={i} onClick={() => setActiveTrackIndex(i)} className={`flex justify-between text-xs py-3 border-b border-white/5 cursor-pointer ${activeTrackIndex === i ? 'text-amber-500' : 'opacity-50'}`}>
+                          <div key={i} onClick={() => setActiveTrackIndex(i)} className={`flex justify-between text-[11px] py-2 border-b border-white/5 cursor-pointer transition-all ${activeTrackIndex === i ? 'text-amber-500' : 'opacity-40 hover:opacity-100'}`}>
                             <span>{i+1}. {t.name}</span>
                           </div>
                         ))}
@@ -264,57 +340,56 @@ export default function VinylVault() {
                     </div>
                   </motion.div>
                 ) : (
-                  <div className="h-[50vh] flex flex-col items-center justify-center text-zinc-600"><Music size={48} className="mb-4 opacity-20" /><p>Your turntable is empty.</p></div>
+                  <div className="h-[50vh] flex flex-col items-center justify-center text-zinc-600"><Music size={48} className="mb-4 opacity-10" /><p className="text-sm">The vault is silent. Choose a record.</p></div>
                 )
               )}
 
-              {/* signing  up */}
-              {view === 'signup' && (
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl text-center">
-                  <button onClick={() => setView('genres')} className="flex items-center gap-2 text-zinc-500 text-[10px] uppercase font-bold mb-8 hover:text-white"><ArrowLeft size={14} /> Back</button>
-                  <h2 className="text-4xl font-black mb-6">Create Account</h2>
-                  <form onSubmit={handleSignUpSubmit} className="space-y-4">
-                    <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none" />
-                    <input required type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none" />
-                    {authError && <p className="text-red-500 text-[10px] font-bold uppercase">{authError}</p>}
-                    <button type="submit" className="w-full bg-amber-500 text-black font-bold py-4 rounded-2xl">Create Account</button>
-                    <p className="text-zinc-500 text-[10px] cursor-pointer mt-4" onClick={() => setView('login')}>Already a member? Log In</p>
-                  </form>
-                </motion.div>
-              )}
-
-              {/* login */}
+              {/* LOGIN VIEW */}
               {view === 'login' && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl text-center">
-                  <h2 className="text-4xl font-black mb-6">Welcome Back</h2>
-                  <form onSubmit={handleLoginSubmit} className="space-y-4">
-                    <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none" />
-                    <input required type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none" />
-                    {authError && <p className="text-red-500 text-[10px] font-bold uppercase">{authError}</p>}
-                    <button type="submit" className="w-full bg-white text-black font-bold py-4 rounded-2xl">Sign In</button>
-                    <p className="text-zinc-500 text-[10px] cursor-pointer mt-4" onClick={() => setView('signup')}>New collector? Join here</p>
-                  </form>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl text-center">
+                   <h2 className="text-4xl font-black mb-6">Welcome Back</h2>
+                   <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
+                      <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
+                      <input required type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
+                      {authError && <p className="text-red-500 text-[10px] font-bold uppercase tracking-tight">{authError}</p>}
+                      <button type="submit" className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-amber-500 transition-all uppercase tracking-widest text-xs">Sign In</button>
+                      <p className="text-zinc-600 text-[10px] mt-4 text-center">Not a member? <span className="text-amber-500 cursor-pointer" onClick={() => setView('signup')}>Register</span></p>
+                   </form>
                 </motion.div>
               )}
 
-              {/* generes tab */}
+              {/* SIGN UP VIEW */}
+              {view === 'signup' && (
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl text-center">
+                   <h2 className="text-4xl font-black mb-2 italic tracking-tighter">Join Vault</h2>
+                   <p className="text-zinc-500 text-sm mb-10">Start your vinyl collection journey today.</p>
+                   <form onSubmit={handleSignUpSubmit} className="space-y-4 text-left">
+                      <input required type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
+                      <input required type="password" placeholder="Create Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
+                      {authError && <p className="text-red-500 text-[10px] font-bold uppercase tracking-tight">{authError}</p>}
+                      <button type="submit" className="w-full bg-amber-500 text-black font-bold py-4 rounded-2xl hover:brightness-110 transition-all uppercase tracking-widest text-xs">Register</button>
+                   </form>
+                </motion.div>
+              )}
+
+              {/* GENRES VIEW */}
               {view === 'genres' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {GENRE_DATA.map((g) => (
                     <div key={g.name} className="space-y-6">
-                      <h3 className="text-amber-500 font-bold uppercase tracking-widest text-xs border-l-2 border-amber-500 pl-4">{g.name}</h3>
+                      <h3 className="text-amber-500 font-bold uppercase tracking-widest text-[10px] border-l-2 border-amber-500 pl-4">{g.name}</h3>
                       {g.artists.map((artist) => (
                         <div key={artist.name} className="bg-white/[0.03] p-5 rounded-3xl border border-white/5 space-y-4">
-                          <p className="text-zinc-500 text-[10px] uppercase font-bold">{artist.name}</p>
+                          <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider">{artist.name}</p>
                           {artist.albums.map((album) => {
                             const isAdded = collection.find(a => a.title === album.title);
                             return (
                               <div key={album.title} className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <img src={album.cover} className="w-10 h-10 rounded-lg object-cover" />
+                                <div className="flex items-center gap-4">
+                                  <img src={album.cover} className="w-12 h-12 rounded-lg object-cover shadow-lg" />
                                   <span className="text-sm font-bold">{album.title}</span>
                                 </div>
-                                <button onClick={() => handleVaultToggle(album, artist.name)} className={`p-2 rounded-full border ${isAdded ? 'bg-amber-500 text-black' : 'hover:bg-amber-500'}`}>
+                                <button onClick={() => handleVaultToggle(album, artist.name)} className={`p-2 rounded-full border transition-all ${isAdded ? 'bg-amber-500 text-black' : 'hover:bg-amber-500 border-white/10'}`}>
                                   {isAdded ? <Check size={14}/> : <Plus size={14}/>}
                                 </button>
                               </div>
@@ -327,16 +402,27 @@ export default function VinylVault() {
                 </motion.div>
               )}
 
-              {/* settings handling */}
+              {/* SETTINGS VIEW */}
               {view === 'settings' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="max-w-2xl bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl">
-                  <h2 className="text-3xl font-black mb-10">Preferences</h2>
+                  <h2 className="text-3xl font-black mb-10 tracking-tight">System Preferences</h2>
                   <div className="space-y-8">
                     <section>
-                      <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-4">Account Status</p>
+                      <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-4">Identity</p>
                       <div className="p-6 bg-white/[0.03] rounded-3xl border border-white/5 flex items-center justify-between">
-                        <span className="text-sm">{isLoggedIn ? `Logged in as ${user.name}` : "Guest Mode"}</span>
-                        {!isLoggedIn && <button onClick={() => setView('login')} className="text-amber-500 text-xs font-bold uppercase tracking-widest">Connect</button>}
+                        <span className="text-sm text-zinc-300">{isLoggedIn ? `Authenticated as ${user.name}` : "Local Guest Access"}</span>
+                        {!isLoggedIn && <button onClick={() => setView('login')} className="text-amber-500 text-[10px] font-bold uppercase tracking-widest hover:underline">Link Account</button>}
+                      </div>
+                    </section>
+                    <section>
+                      <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-4">Playback Engine</p>
+                      <div className="space-y-3">
+                        {['Lossless Audio Quality', 'Automatic Needle Physics', 'Vinyl Surface Texture'].map(pref => (
+                          <div key={pref} className="p-4 bg-white/[0.01] rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-white/[0.03] transition-all">
+                            <span className="text-sm text-zinc-400">{pref}</span>
+                            <div className="w-10 h-5 bg-amber-500 rounded-full flex items-center justify-end px-1"><div className="w-3 h-3 bg-white rounded-full shadow-md" /></div>
+                          </div>
+                        ))}
                       </div>
                     </section>
                   </div>
