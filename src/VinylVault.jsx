@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Pause, Music, Search, Plus, Check, X, Settings, 
   LogIn, UserPlus, LogOut, ShieldCheck, Mail, Lock, ArrowLeft,
-  SkipBack, SkipForward, Heart, Info
+  SkipBack, SkipForward, Heart, Info, Star, MessageSquare, Activity
 } from 'lucide-react';
 
-// 1. NESTED DATA STRUCTURE (The Archive)
+// 1. NESTED DATA STRUCTURE
 const GENRE_DATA = [
   {
     name: "Indie Rock",
@@ -103,15 +103,22 @@ export default function VinylVault() {
   const [duration, setDuration] = useState(0);
   const audioRef = useRef(null);
 
+  // --- INTERACTION & FEED STATE ---
+  const [hoverStar, setHoverStar] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  // Feed is now initialized as an empty array
+  const [feed, setFeed] = useState([]);
+
   // --- AUTH & USER DB STATE ---
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [registeredUsers, setRegisteredUsers] = useState([
-    { email: "marwan@vault.com", password: "123", name: "Marwan" } 
+    { email: "marwan@vault.com", password: "123", name: "Marwan", username: "marwan_vlt" } 
   ]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState(""); 
   const [authError, setAuthError] = useState("");
 
   const formatTime = (t) => `${Math.floor(t / 60)}:${Math.floor(t % 60).toString().padStart(2, '0')}`;
@@ -124,6 +131,7 @@ export default function VinylVault() {
     audio.src = selected.tracks[activeTrackIndex]?.audio || selected.tracks[0].audio;
     audio.load();
     if (isPlaying) audio.play().catch(() => setIsPlaying(false));
+    setReviewText(selected.review || "");
   }, [selected, activeTrackIndex]);
 
   const togglePlay = () => {
@@ -172,19 +180,55 @@ export default function VinylVault() {
         setIsPlaying(false);
       }
     } else {
-      const newAlbum = { ...album, artist: artistName, id: Date.now() };
+      const newAlbum = { 
+        ...album, 
+        artist: artistName, 
+        id: Date.now(),
+        rating: 0,
+        liked: false,
+        review: ""
+      };
       setCollection([...collection, newAlbum]);
       if (!selected) setSelected(newAlbum);
     }
   };
 
+  // --- FEED & INTERACTION HANDLERS ---
+  const updateAlbumData = (updates) => {
+    const updatedCollection = collection.map(a => 
+      a.title === selected.title ? { ...a, ...updates } : a
+    );
+    setCollection(updatedCollection);
+    setSelected({ ...selected, ...updates });
+  };
+
+  const handlePostReview = () => {
+    if (!isLoggedIn) {
+        setView('login');
+        return;
+    }
+    const newEntry = {
+        id: Date.now(),
+        username: user.username,
+        albumTitle: selected.title,
+        artist: selected.artist,
+        cover: selected.cover,
+        rating: selected.rating,
+        comment: reviewText,
+        timestamp: "Just now"
+    };
+    setFeed([newEntry, ...feed]);
+    updateAlbumData({ review: reviewText });
+    setView('activity');
+  };
+
   const handleSignUpSubmit = (e) => {
     e.preventDefault();
-    if (registeredUsers.find(u => u.email === email)) {
-      setAuthError("Email already registered!");
+    if (registeredUsers.find(u => u.email === email || u.username === username)) {
+      setAuthError("Email or Username already taken!");
       return;
     }
-    const newUser = { email, password, name: email.split('@')[0] };
+    const newUser = { email, password, name: username, username };
     setRegisteredUsers([...registeredUsers, newUser]);
     setIsLoggedIn(true);
     setUser(newUser);
@@ -229,6 +273,7 @@ export default function VinylVault() {
         <div className="flex items-center gap-8 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
           <button onClick={() => setView('player')} className={`transition-colors ${view === 'player' ? 'text-amber-500' : 'hover:text-white'}`}>Player</button>
           <button onClick={() => setView('genres')} className={`transition-colors ${view === 'genres' ? 'text-amber-500' : 'hover:text-white'}`}>Genres</button>
+          <button onClick={() => setView('activity')} className={`transition-colors ${view === 'activity' ? 'text-amber-500' : 'hover:text-white'}`}>Activity</button>
           <button onClick={() => setView('about')} className={`transition-colors ${view === 'about' ? 'text-amber-500' : 'hover:text-white'}`}>About</button>
           <button onClick={() => setView('settings')} className={`transition-colors ${view === 'settings' ? 'text-amber-500' : 'hover:text-white'}`}>Settings</button>
         </div>
@@ -237,9 +282,9 @@ export default function VinylVault() {
           <div className="relative">
             <div 
               onClick={() => { setShowProfileMenu(!showProfileMenu); setAuthError(""); }}
-              className={`w-9 h-9 rounded-full cursor-pointer border-2 flex items-center justify-center transition-all ${isLoggedIn ? 'border-amber-500 bg-amber-500/10' : 'border-white/10 bg-zinc-800'}`}
+              className={`w-9 h-9 rounded-full cursor-pointer border-2 flex items-center justify-center transition-all ${isLoggedIn ? 'border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/10' : 'border-white/10 bg-zinc-800'}`}
             >
-              {isLoggedIn ? <span className="text-amber-500 font-bold text-xs">{user.name[0].toUpperCase()}</span> : <UserPlus size={16} />}
+              {isLoggedIn ? <span className="text-amber-500 font-bold text-xs">@{user.username[0].toUpperCase()}</span> : <UserPlus size={16} />}
             </div>
             <AnimatePresence>
               {showProfileMenu && (
@@ -250,7 +295,12 @@ export default function VinylVault() {
                       <button onClick={() => {setView('signup'); setShowProfileMenu(false);}} className="flex items-center gap-3 w-full p-3 hover:bg-white/5 rounded-xl text-xs text-left text-amber-500"><UserPlus size={14} /> Create Account</button>
                     </>
                   ) : (
-                    <button onClick={handleLogout} className="flex items-center gap-3 w-full p-3 hover:bg-red-500/10 text-red-400 rounded-xl text-xs text-left"><LogOut size={14} /> Log Out</button>
+                    <div className="p-2">
+                       <div className="px-3 py-2 mb-2 border-b border-white/5">
+                          <p className="text-[10px] font-bold text-amber-500">@{user.username}</p>
+                       </div>
+                       <button onClick={handleLogout} className="flex items-center gap-3 w-full p-3 hover:bg-red-500/10 text-red-400 rounded-xl text-xs text-left transition-colors"><LogOut size={14} /> Log Out</button>
+                    </div>
                   )}
                 </motion.div>
               )}
@@ -271,129 +321,180 @@ export default function VinylVault() {
               collection.map((album) => (
                 <motion.div 
                   key={album.id} onClick={() => { setSelected(album); setView('player'); }}
-                  className={`group flex items-center p-3 rounded-xl cursor-pointer transition-all border relative ${selected?.title === album.title ? 'bg-white/10 border-white/20 shadow-md' : 'bg-transparent border-transparent hover:bg-white/5'}`}
+                  className={`group flex items-center p-3 rounded-xl cursor-pointer transition-all border relative ${selected?.title === album.title ? 'bg-white/10 border-white/20' : 'bg-transparent border-transparent hover:bg-white/5'}`}
                 >
                   <img src={album.cover} className="w-12 h-12 rounded-lg object-cover" />
-                  <div className="ml-4"><h3 className="font-bold text-xs truncate w-32">{album.title}</h3><p className="text-zinc-500 text-[8px] uppercase tracking-widest">{album.artist}</p></div>
+                  <div className="ml-4 flex flex-col">
+                    <h3 className="font-bold text-xs truncate w-24">{album.title}</h3>
+                    <div className="flex items-center gap-2">
+                       <p className="text-zinc-500 text-[8px] uppercase">{album.artist}</p>
+                       {album.liked && <Heart size={8} className="fill-red-500 text-red-500" />}
+                    </div>
+                  </div>
                   <button onClick={(e) => { e.stopPropagation(); handleVaultToggle(album); }} className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-opacity"><X size={14} /></button>
                 </motion.div>
               ))
             )}
           </aside>
 
-          {/* MAIN CONTENT */}
+          {/* MAIN CONTENT Area */}
           <section className="xl:col-span-9">
             <AnimatePresence mode="wait">
               
               {/* PLAYER VIEW */}
               {view === 'player' && (
                 selected ? (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-white/[0.02] backdrop-blur-3xl rounded-[40px] p-10 border border-white/5 shadow-2xl flex flex-col lg:flex-row items-center gap-12">
-                    <div className="relative">
-                       <div className="relative bg-[#121212] p-8 rounded-full shadow-2xl border-b-8 border-black">
-                          <motion.div animate={{ rotate: isPlaying ? 360 : 0 }} transition={{ duration: 4, repeat: Infinity, ease: "linear", repeatType: "loop" }} className="w-64 h-64 rounded-full bg-black flex items-center justify-center relative overflow-hidden">
-                             <div className="absolute inset-0 bg-[repeating-radial-gradient(circle,_transparent_0,_transparent_2px,_rgba(255,255,255,0.03)_3px)] opacity-40" />
-                             <img src={selected.cover} className="w-28 h-28 rounded-full border-[6px] border-black z-20 object-cover" />
-                          </motion.div>
-                          <motion.div animate={{ rotate: isPlaying ? -25 : 0 }} transition={{ type: "spring", stiffness: 30, damping: 12 }} className="absolute top-8 right-0 w-44 h-3 bg-gradient-to-r from-zinc-500 to-zinc-700 origin-right rounded-full z-30 shadow-xl" />
-                       </div>
-                    </div>
-
-                    <div className="w-full text-center lg:text-left">
-                      <h2 className="text-5xl font-black mb-1 tracking-tighter">{selected.tracks[activeTrackIndex].name}</h2>
-                      <p className="text-amber-500 font-mono text-[10px] uppercase mb-8 tracking-[0.3em]">{selected.artist} — {selected.title}</p>
-                      
-                      <div className="space-y-1 mb-8 max-w-md mx-auto lg:mx-0">
-                        <input type="range" min="0" max={duration || 0} value={currentTime} onChange={(e) => audioRef.current.currentTime = e.target.value} className="w-full h-1 bg-zinc-800 rounded-lg appearance-none accent-amber-500 cursor-pointer" />
-                        <div className="flex justify-between text-[9px] font-mono text-zinc-600 uppercase tracking-widest">
-                          <span>{formatTime(currentTime)}</span>
-                          <span>{formatTime(duration)}</span>
+                  <div className="space-y-8">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-white/[0.02] backdrop-blur-3xl rounded-[40px] p-10 border border-white/5 shadow-2xl flex flex-col lg:flex-row items-center gap-12">
+                      <div className="relative">
+                        <div className="relative bg-[#121212] p-8 rounded-full shadow-2xl border-b-8 border-black">
+                            <motion.div animate={{ rotate: isPlaying ? 360 : 0 }} transition={{ duration: 4, repeat: Infinity, ease: "linear", repeatType: "loop" }} className="w-64 h-64 rounded-full bg-black flex items-center justify-center relative overflow-hidden">
+                              <div className="absolute inset-0 bg-[repeating-radial-gradient(circle,_transparent_0,_transparent_2px,_rgba(255,255,255,0.03)_3px)] opacity-40" />
+                              <img src={selected.cover} className="w-28 h-28 rounded-full border-[6px] border-black z-20 object-cover" />
+                            </motion.div>
+                            <motion.div animate={{ rotate: isPlaying ? -25 : 0 }} transition={{ type: "spring", stiffness: 30, damping: 12 }} className="absolute top-8 right-0 w-44 h-3 bg-gradient-to-r from-zinc-500 to-zinc-700 origin-right rounded-full z-30 shadow-xl" />
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-center lg:justify-start gap-6 mb-10">
-                        <button onClick={handlePrev} className="text-zinc-500 hover:text-white transition-colors"><SkipBack size={24} /></button>
-                        <button onClick={() => handleSeek(-10)} className="text-zinc-600 hover:text-amber-500 transition-colors text-[9px] font-bold font-mono">-10S</button>
-                        <button onClick={togglePlay} className="bg-amber-500 text-black p-6 rounded-full hover:scale-110 transition-all shadow-xl shadow-amber-500/20">{isPlaying ? <Pause size={32} fill="black" /> : <Play size={32} className="ml-1" fill="black" />}</button>
-                        <button onClick={() => handleSeek(10)} className="text-zinc-600 hover:text-amber-500 transition-colors text-[9px] font-bold font-mono">+10S</button>
-                        <button onClick={handleNext} className="text-zinc-500 hover:text-white transition-colors"><SkipForward size={24} /></button>
-                      </div>
-                      
-                      {/* TRACK LIST (Always visible in Player view when an album is selected) */}
-                      <div className="space-y-2 max-h-48 overflow-y-auto pr-2 bg-black/20 rounded-2xl p-4 border border-white/5 scrollbar-hide">
-                        <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-3">Tracklist</p>
-                        {selected.tracks.map((t, i) => (
-                          <div 
-                            key={i} 
-                            onClick={() => setActiveTrackIndex(i)} 
-                            className={`flex justify-between items-center text-[11px] py-2 px-3 rounded-lg cursor-pointer transition-all ${activeTrackIndex === i ? 'bg-amber-500/10 text-amber-500' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}
-                          >
-                            <span className="font-medium">{i+1}. {t.name}</span>
-                            {activeTrackIndex === i && isPlaying && <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
+                      <div className="w-full text-center lg:text-left">
+                        <div className="flex items-center justify-center lg:justify-start gap-4 mb-1">
+                           <h2 className="text-5xl font-black tracking-tighter">{selected.tracks[activeTrackIndex].name}</h2>
+                           <button onClick={() => updateAlbumData({ liked: !selected.liked })} className="transition-transform active:scale-90">
+                              <Heart size={28} className={selected.liked ? "fill-red-500 text-red-500" : "text-zinc-700 hover:text-zinc-500"} />
+                           </button>
+                        </div>
+                        <p className="text-amber-500 font-mono text-[10px] uppercase mb-8 tracking-[0.3em]">{selected.artist} — {selected.title}</p>
+                        
+                        <div className="space-y-1 mb-8 max-w-md mx-auto lg:mx-0">
+                          <input type="range" min="0" max={duration || 0} value={currentTime} onChange={(e) => audioRef.current.currentTime = e.target.value} className="w-full h-1 bg-zinc-800 rounded-lg appearance-none accent-amber-500 cursor-pointer" />
+                          <div className="flex justify-between text-[9px] font-mono text-zinc-600 uppercase">
+                            <span>{formatTime(currentTime)}</span>
+                            <span>{formatTime(duration)}</span>
                           </div>
-                        ))}
+                        </div>
+
+                        <div className="flex items-center justify-center lg:justify-start gap-6 mb-10">
+                          <button onClick={handlePrev} className="text-zinc-500 hover:text-white transition-colors"><SkipBack size={24} /></button>
+                          <button onClick={() => handleSeek(-10)} className="text-zinc-600 hover:text-amber-500 transition-colors text-[9px] font-bold font-mono">-10S</button>
+                          <button onClick={togglePlay} className="bg-amber-500 text-black p-6 rounded-full hover:scale-110 transition-all shadow-xl shadow-amber-500/20">{isPlaying ? <Pause size={32} fill="black" /> : <Play size={32} className="ml-1" fill="black" />}</button>
+                          <button onClick={() => handleSeek(10)} className="text-zinc-600 hover:text-amber-500 transition-colors text-[9px] font-bold font-mono">+10S</button>
+                          <button onClick={handleNext} className="text-zinc-500 hover:text-white transition-colors"><SkipForward size={24} /></button>
+                        </div>
+                        
+                        <div className="space-y-2 max-h-40 overflow-y-auto pr-2 bg-black/20 rounded-2xl p-4 border border-white/5">
+                          {selected.tracks.map((t, i) => (
+                            <div key={i} onClick={() => setActiveTrackIndex(i)} className={`flex justify-between text-[11px] py-2 border-b border-white/5 cursor-pointer transition-all ${activeTrackIndex === i ? 'text-amber-500' : 'opacity-40 hover:opacity-100'}`}>
+                              <span>{i+1}. {t.name}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="bg-white/[0.02] border border-white/5 rounded-[30px] p-8 backdrop-blur-xl">
+                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-6">Critic Rating</p>
+                          <div className="flex items-center gap-2">
+                             {[1, 2, 3, 4, 5].map((star) => (
+                                <button 
+                                   key={star}
+                                   onMouseEnter={() => setHoverStar(star)}
+                                   onMouseLeave={() => setHoverStar(0)}
+                                   onClick={() => updateAlbumData({ rating: star })}
+                                   className="transition-transform active:scale-90"
+                                >
+                                   <Star 
+                                      size={32} 
+                                      className={`transition-colors ${star <= (hoverStar || selected.rating) ? "fill-amber-500 text-amber-500" : "text-zinc-800"}`} 
+                                   />
+                                </button>
+                             ))}
+                             <span className="ml-4 text-2xl font-black text-amber-500/40 font-mono">{selected.rating}.0</span>
+                          </div>
+                       </div>
+
+                       <div className="bg-white/[0.02] border border-white/5 rounded-[30px] p-8 backdrop-blur-xl relative">
+                          <div className="flex items-center justify-between mb-4">
+                             <div className="flex items-center gap-2">
+                                <MessageSquare size={14} className="text-amber-500" />
+                                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Review Notes</p>
+                             </div>
+                             <button onClick={handlePostReview} className="text-[8px] font-bold text-amber-500 border border-amber-500/20 px-3 py-1 rounded-full hover:bg-amber-500 hover:text-black transition-all">POST TO FEED</button>
+                          </div>
+                          <textarea 
+                             placeholder="Write your thoughts on this record..."
+                             value={reviewText}
+                             onChange={(e) => setReviewText(e.target.value)}
+                             className="w-full bg-transparent border-none outline-none text-sm text-zinc-300 resize-none h-20 placeholder:text-zinc-800"
+                          />
+                       </div>
+                    </motion.div>
+                  </div>
                 ) : (
                   <div className="h-[50vh] flex flex-col items-center justify-center text-zinc-600"><Music size={48} className="mb-4 opacity-10" /><p className="text-sm">The vault is silent. Choose a record.</p></div>
                 )
               )}
 
-              {/* ABOUT VIEW */}
-              {view === 'about' && (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-3xl mx-auto space-y-12">
-                  <div className="text-center space-y-4">
-                    <h2 className="text-5xl font-black italic tracking-tighter" style={{ fontFamily: "'Permanent Marker', cursive" }}>Project Overview</h2>
-                    <p className="text-amber-500 font-mono text-[10px] uppercase tracking-[0.4em]">A modern digital archive for physical music culture.</p>
-                  </div>
-                  
-                  <div className="bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl leading-relaxed text-zinc-400 text-sm">
-                    <p className="mb-6">
-                      <span className="text-amber-500 font-bold">Vinyl Vault</span> is a web application designed to simulate the tactile experience of a physical music collection. By integrating the HTML5 Audio API with motion physics, we aim to bridge the gap between high-fidelity digital streaming and the traditional turntable aesthetic.
-                    </p>
-                    <p>
-                      This platform allows users to explore curated genres, manage a personalized digital vault, and engage with a playback interface that prioritizes album-centric listening over the randomized nature of modern algorithms.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                    <div className="p-8 bg-white/[0.03] rounded-3xl border border-white/5 text-center">
-                      <p className="text-zinc-500 text-[9px] uppercase font-bold tracking-widest mb-3">Development Team</p>
-                      <p className="text-lg font-black italic">Marwan Mohamed</p>
-                      <p className="text-lg font-black italic">& Ahmed Osama</p>
-                    </div>
-                    <div className="p-8 bg-white/[0.03] rounded-3xl border border-white/5 text-center">
-                      <p className="text-zinc-500 text-[9px] uppercase font-bold tracking-widest mb-3">Academic Supervision</p>
-                      <p className="text-md font-bold">Dr. Noha Ghatawry</p>
-                      <p className="text-md font-bold">Eng. Seif Mansour</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-center items-center gap-2 text-zinc-700 text-[10px] uppercase tracking-widest font-bold py-10">
-                    <Info size={14} className="text-amber-500" /> <span>Phase 1 Prototype // 2026</span>
-                  </div>
+              {/* ACTIVITY FEED VIEW */}
+              {view === 'activity' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto space-y-8">
+                   <div className="flex items-center gap-4 border-b border-white/5 pb-6">
+                      <Activity className="text-amber-500" />
+                      <h2 className="text-2xl font-black italic">Recent Reviews</h2>
+                   </div>
+                   <div className="space-y-6">
+                      {feed.length === 0 ? (
+                         <div className="text-center py-20 opacity-20">
+                            <MessageSquare size={48} className="mx-auto mb-4" />
+                            <p className="text-xs font-bold uppercase tracking-widest">No reviews posted yet.</p>
+                         </div>
+                      ) : (
+                        feed.map(post => (
+                          <div key={post.id} className="bg-white/[0.02] border border-white/5 rounded-[30px] p-6 flex gap-6 group hover:bg-white/[0.04] transition-all">
+                             <img src={post.cover} className="w-24 h-24 rounded-lg shadow-2xl object-cover" />
+                             <div className="flex-1">
+                                <div className="flex items-center justify-between mb-2">
+                                   <div className="flex items-center gap-2">
+                                      <span className="text-amber-500 font-bold text-sm">@{post.username}</span>
+                                      <span className="text-zinc-600 text-[10px] uppercase font-bold tracking-widest">Reviewed</span>
+                                      <span className="text-white font-bold text-sm">{post.albumTitle}</span>
+                                   </div>
+                                   <span className="text-[9px] text-zinc-700 font-mono">{post.timestamp}</span>
+                                </div>
+                                <div className="flex gap-1 mb-3">
+                                   {[...Array(5)].map((_, i) => (
+                                      <Star key={i} size={10} className={i < post.rating ? "fill-amber-500 text-amber-500" : "text-zinc-800"} />
+                                   ))}
+                                </div>
+                                <p className="text-zinc-400 text-sm italic leading-relaxed">"{post.comment}"</p>
+                             </div>
+                          </div>
+                        ))
+                      )}
+                   </div>
                 </motion.div>
               )}
 
-              {/* LOGIN / SIGNUP / GENRES / SETTINGS remains as before */}
+              {/* OTHER VIEWS */}
               {view === 'login' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 text-center">
-                   <h2 className="text-4xl font-black mb-6">Sign In</h2>
+                   <h2 className="text-4xl font-black mb-6">Welcome Back</h2>
                    <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
                       <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
                       <input required type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
                       {authError && <p className="text-red-500 text-[10px] font-bold uppercase">{authError}</p>}
-                      <button type="submit" className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-amber-500 transition-all uppercase tracking-widest text-xs">Login</button>
-                      <p className="text-zinc-600 text-[10px] mt-4 text-center">Need an account? <span className="text-amber-500 cursor-pointer" onClick={() => setView('signup')}>Register</span></p>
+                      <button type="submit" className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-amber-500 transition-all uppercase tracking-widest text-xs">Sign In</button>
+                      <p className="text-zinc-600 text-[10px] mt-4 text-center">Not a member? <span className="text-amber-500 cursor-pointer" onClick={() => setView('signup')}>Register</span></p>
                    </form>
                 </motion.div>
               )}
 
               {view === 'signup' && (
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 text-center">
-                   <h2 className="text-4xl font-black mb-6 italic tracking-tighter">Join Vault</h2>
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl text-center">
+                   <h2 className="text-4xl font-black mb-2 italic tracking-tighter">Join Vault</h2>
+                   <p className="text-zinc-500 text-sm mb-10">Start your vinyl collection journey today.</p>
                    <form onSubmit={handleSignUpSubmit} className="space-y-4 text-left">
+                      <input required type="text" placeholder="Choose Username" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
                       <input required type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
                       <input required type="password" placeholder="Create Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
                       {authError && <p className="text-red-500 text-[10px] font-bold uppercase">{authError}</p>}
@@ -438,7 +539,7 @@ export default function VinylVault() {
                     <section>
                       <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-4">Identity</p>
                       <div className="p-6 bg-white/[0.03] rounded-3xl border border-white/5 flex items-center justify-between">
-                        <span className="text-sm text-zinc-300">{isLoggedIn ? `Authenticated as ${user.name}` : "Local Guest Access"}</span>
+                        <span className="text-sm text-zinc-300">{isLoggedIn ? `Authenticated as @${user.username}` : "Local Guest Access"}</span>
                         {!isLoggedIn && <button onClick={() => setView('login')} className="text-amber-500 text-[10px] font-bold uppercase tracking-widest hover:underline">Link Account</button>}
                       </div>
                     </section>
@@ -453,6 +554,41 @@ export default function VinylVault() {
                         ))}
                       </div>
                     </section>
+                  </div>
+                </motion.div>
+              )}
+
+              {view === 'about' && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-3xl mx-auto space-y-12">
+                  <div className="text-center space-y-4">
+                    <h2 className="text-5xl font-black italic tracking-tighter" style={{ fontFamily: "'Permanent Marker', cursive" }}>Project Overview</h2>
+                    <p className="text-amber-500 font-mono text-[10px] uppercase tracking-[0.4em]">A modern digital archive for physical music culture.</p>
+                  </div>
+                  
+                  <div className="bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl leading-relaxed text-zinc-400 text-sm">
+                    <p className="mb-6">
+                      <span className="text-amber-500 font-bold">Vinyl Vault</span> is a web application designed to simulate the tactile experience of a physical music collection. By integrating the HTML5 Audio API with motion physics, we aim to bridge the gap between high-fidelity digital streaming and the traditional turntable aesthetic.
+                    </p>
+                    <p>
+                      This platform allows users to explore curated genres, manage a personalized digital vault, and engage with a playback interface that prioritizes album-centric listening over the randomized nature of modern algorithms.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                    <div className="p-8 bg-white/[0.03] rounded-3xl border border-white/5 text-center">
+                      <p className="text-zinc-500 text-[9px] uppercase font-bold tracking-widest mb-3">Development Team</p>
+                      <p className="text-lg font-black italic">Marwan Mohamed</p>
+                      <p className="text-lg font-black italic">& Ahmed Osama</p>
+                    </div>
+                    <div className="p-8 bg-white/[0.03] rounded-3xl border border-white/5 text-center">
+                      <p className="text-zinc-500 text-[9px] uppercase font-bold tracking-widest mb-3">Academic Supervision</p>
+                      <p className="text-md font-bold">Dr. Noha Ghatawry</p>
+                      <p className="text-md font-bold">Eng. Seif Mansour</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-center items-center gap-2 text-zinc-700 text-[10px] uppercase tracking-widest font-bold py-10">
+                    <Info size={14} className="text-amber-500" /> <span>Phase 1 Prototype // 2026</span>
                   </div>
                 </motion.div>
               )}
