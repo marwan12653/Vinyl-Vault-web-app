@@ -2,57 +2,55 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Pause, Music, Search, Plus, Check, X, Settings, 
-  LogIn, UserPlus, LogOut, ShieldCheck, Mail, Lock, ArrowLeft,
-  SkipBack, SkipForward, Heart, Info, Star, MessageSquare, Activity
+  LogIn, UserPlus, LogOut, SkipBack, SkipForward, Heart, Info, Star, MessageSquare, Activity
 } from 'lucide-react';
 
-// 1. NESTED DATA STRUCTURE
-const GENRE_DATA = [
+// STABLE MASTER CATALOG RESOURCE - NO API REQUIRED
+const STATIC_CATALOG = [
   {
     name: "Indie Rock",
     artists: [
       {
         name: "The Strokes",
-        albums: [{ 
-          title: "Is This It", 
-          cover: "/is_this_it.png", 
+        albums: [{
+          title: "Is This It",
+          cover: "https://vinyldiscos.b-cdn.net/covers/is_this_it.png",
           tracks: [
-            { name: "Is This It", audio: "/is_this_it_TheStrokes.wav" },
-            { name: "The Modern Age", audio: "/modern_age.wav" },
-            { name: "Soma", audio: "/soma.wav" },
-            { name: "Barely Legal", audio: "/barely_legal.wav" }
+            { name: "Is This It", audio: "https://vinyldiscos.b-cdn.net/previews/is_this_it.mp3" },
+            { name: "The Modern Age", audio: "https://vinyldiscos.b-cdn.net/previews/modern_age.mp3" },
+            { name: "Soma", audio: "https://vinyldiscos.b-cdn.net/previews/soma.mp3" },
+            { name: "Barely Legal", audio: "https://vinyldiscos.b-cdn.net/previews/barely_legal.mp3" }
           ]
         }]
       },
       {
         name: "The Symposium",
-        albums: [{ 
-          title: "The Symposium", 
-          cover: "/the_symposium.png", 
+        albums: [{
+          title: "The Symposium",
+          cover: "https://vinyldiscos.b-cdn.net/covers/the_symposium.png",
           tracks: [
-            { name: "The Physical Attractions", audio: "/the_symposium_the_physical_attraction.wav" },
-            { name: "Cowboy", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" }
+            { name: "The Physical Attractions", audio: "https://vinyldiscos.b-cdn.net/previews/the_physical_attractions.mp3" }
           ]
         }]
       },
       {
         name: "Arctic Monkeys",
-        albums: [{ 
-          title: "AM", 
-          cover: "https://upload.wikimedia.org/wikipedia/en/0/04/Arctic_Monkeys_-_AM.png", 
+        albums: [{
+          title: "AM",
+          cover: "https://vinyldiscos.b-cdn.net/covers/arctic_monkeys_am.png",
           tracks: [
-            { name: "Do I Wanna Know?", audio: "https://p.scdn.co/mp3-preview/abb00e263d5964f9f783226f991c49f87425f190" },
-            { name: "Knee Socks", audio: "/knee_socks.wav" }
-          ] 
+            { name: "Do I Wanna Know?", audio: "https://vinyldiscos.b-cdn.net/previews/do_i_wanna_know.mp3" },
+            { name: "Knee Socks", audio: "https://vinyldiscos.b-cdn.net/previews/knee_socks.mp3" }
+          ]
         }]
       },
       {
         name: "Tame Impala",
-        albums: [{ 
-          title: "Currents", 
-          cover: "/currents.jpg", 
+        albums: [{
+          title: "Currents",
+          cover: "https://vinyldiscos.b-cdn.net/covers/tame_impala_currents.png",
           tracks: [
-            { name: "The Less I Know The Better", audio: "/the_less_i_know_the_better.wav" }
+            { name: "The Less I Know The Better", audio: "https://vinyldiscos.b-cdn.net/previews/the_less_i_know.mp3" }
           ]
         }]
       }
@@ -63,12 +61,23 @@ const GENRE_DATA = [
     artists: [
       {
         name: "The Beatles",
-        albums: [{ 
-          title: "Abbey Road", 
-          cover: "/abbey_road.jpg", 
+        albums: [{
+          title: "Abbey Road",
+          cover: "https://vinyldiscos.b-cdn.net/covers/the_beatles_abbey_road.png",
           tracks: [
-            { name: "Come Together", audio: "/come_together_TheBeatles.wav" },
-            { name: "Something", audio: "/something.wav" }
+            { name: "Come Together", audio: "https://vinyldiscos.b-cdn.net/previews/come_together.mp3" },
+            { name: "Something", audio: "https://vinyldiscos.b-cdn.net/previews/something.mp3" }
+          ]
+        }]
+      },
+      {
+        name: "Pink Floyd",
+        albums: [{
+          title: "The Dark Side of the Moon",
+          cover: "https://vinyldiscos.b-cdn.net/covers/pink_floyd_dark_side.png",
+          tracks: [
+            { name: "Breathe (In the Air)", audio: "https://vinyldiscos.b-cdn.net/previews/breathe.mp3" },
+            { name: "Money", audio: "https://vinyldiscos.b-cdn.net/previews/money.mp3" }
           ]
         }]
       }
@@ -79,12 +88,23 @@ const GENRE_DATA = [
     artists: [
       {
         name: "Peach Pit",
-        albums: [{ 
-          title: "Being So Normal", 
-          cover: "/being_so_normal.jpg", 
+        albums: [{
+          title: "Being So Normal",
+          cover: "https://vinyldiscos.b-cdn.net/covers/peach_pit_being_so_normal.png",
           tracks: [
-            { name: "Peach Pit", audio: "/peach_pit.wav" },
-            { name: "Tommy's Party", audio: "https://p.scdn.co/mp3-preview/13054f15697223b24619d9b68f5661d40a2325c3" }
+            { name: "Peach Pit", audio: "https://vinyldiscos.b-cdn.net/previews/peach_pit.mp3" },
+            { name: "Tommy's Party", audio: "https://vinyldiscos.b-cdn.net/previews/tommys_party.mp3" }
+          ]
+        }]
+      },
+      {
+        name: "Steve Lacy",
+        albums: [{
+          title: "Gemini Rights",
+          cover: "https://vinyldiscos.b-cdn.net/covers/steve_lacy_gemini.png",
+          tracks: [
+            { name: "Bad Habit", audio: "https://vinyldiscos.b-cdn.net/previews/bad_habit.mp3" },
+            { name: "Static", audio: "https://vinyldiscos.b-cdn.net/previews/static.mp3" }
           ]
         }]
       }
@@ -93,8 +113,30 @@ const GENRE_DATA = [
 ];
 
 export default function VinylVault() {
-  // --- CORE STATE ---
-  const [collection, setCollection] = useState([]);
+  // --- STATE LAYER WITH BROWSERS-CACHE RECOVERY ENGINE ---
+  const [genreData] = useState(STATIC_CATALOG); 
+  
+  const [user, setUser] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return JSON.parse(localStorage.getItem('vv_active_user')) || null;
+    }
+    return null;
+  });
+
+  const [collection, setCollection] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return JSON.parse(localStorage.getItem('vv_collection')) || [];
+    }
+    return [];
+  });
+
+  const [feed, setFeed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return JSON.parse(localStorage.getItem('vv_feed')) || [];
+    }
+    return [];
+  });
+
   const [view, setView] = useState('genres'); 
   const [selected, setSelected] = useState(null);
   const [activeTrackIndex, setActiveTrackIndex] = useState(0);
@@ -103,39 +145,98 @@ export default function VinylVault() {
   const [duration, setDuration] = useState(0);
   const audioRef = useRef(null);
 
-  // --- INTERACTION & FEED STATE ---
+  // --- INTERFACE MUTATION UTILS ---
+  const [searchTerm, setSearchTerm] = useState("");
   const [hoverStar, setHoverStar] = useState(0);
   const [reviewText, setReviewText] = useState("");
-  // Feed is now initialized as an empty array
-  const [feed, setFeed] = useState([]);
-
-  // --- AUTH & USER DB STATE ---
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
-  const [registeredUsers, setRegisteredUsers] = useState([
-    { email: "marwan@vault.com", password: "123", name: "Marwan", username: "marwan_vlt" } 
-  ]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState(""); 
   const [authError, setAuthError] = useState("");
 
+  const isLoggedIn = !!user;
+
+  // Sync mutations instantly back down to local storage blocks
+  useEffect(() => {
+    localStorage.setItem('vv_collection', JSON.stringify(collection));
+  }, [collection]);
+
+  useEffect(() => {
+    localStorage.setItem('vv_feed', JSON.stringify(feed));
+  }, [feed]);
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('vv_active_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('vv_active_user');
+    }
+  }, [user]);
+
+  // --- LOCAL ARCHITECTURE SIMULATION AUTHS ---
+  const handleSignUpSubmit = (e) => {
+    e.preventDefault();
+    if (!username || !email || !password) {
+      setAuthError("Please fill out all fields.");
+      return;
+    }
+    const mockUser = { id: Date.now().toString(), username: username, email: email };
+    setUser(mockUser);
+    setView('genres');
+    setAuthError("");
+    setUsername(""); setEmail(""); setPassword("");
+  };
+
+  const handleTransientLogin = (e) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setAuthError("Please provide an email and password.");
+      return;
+    }
+    const safeName = email.split('@')[0];
+    const mockUser = { id: "user_123", username: safeName, email: email };
+    setUser(mockUser);
+    setView('genres');
+    setAuthError("");
+    setEmail(""); setPassword("");
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setCollection([]);
+    setSelected(null);
+    setView('genres');
+    setShowProfileMenu(false);
+  };
+
+  // --- FILTER LOGIC FOR GENRES ---
+  const filteredGenres = (genreData || []).map(genre => ({
+    ...genre,
+    artists: (genre.artists || []).filter(artist => 
+      artist.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      genre.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  })).filter(genre => genre.artists.length > 0);
+
   const formatTime = (t) => `${Math.floor(t / 60)}:${Math.floor(t % 60).toString().padStart(2, '0')}`;
 
-  // AUDIO SYNCHRONIZATION
+  // AUDIO SYNCHRONIZATION RUNTIME
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !selected) return;
+
     audio.pause();
-    audio.src = selected.tracks[activeTrackIndex]?.audio || selected.tracks[0].audio;
-    audio.load();
-    if (isPlaying) audio.play().catch(() => setIsPlaying(false));
+    if (selected.tracks && selected.tracks.length > 0) {
+      audio.src = selected.tracks[activeTrackIndex]?.audio || selected.tracks[0].audio;
+      audio.load();
+      if (isPlaying) audio.play().catch(() => setIsPlaying(false));
+    }
     setReviewText(selected.review || "");
   }, [selected, activeTrackIndex]);
 
   const togglePlay = () => {
-    if (!selected) return;
+    if (!selected || !selected.tracks || selected.tracks.length === 0) return;
     if (isPlaying) {
       audioRef.current?.pause();
       setIsPlaying(false);
@@ -145,7 +246,7 @@ export default function VinylVault() {
   };
 
   const handleNext = () => {
-    if (!selected) return;
+    if (!selected || !selected.tracks || selected.tracks.length === 0) return;
     if (activeTrackIndex < selected.tracks.length - 1) {
       setActiveTrackIndex(prev => prev + 1);
     } else {
@@ -155,7 +256,7 @@ export default function VinylVault() {
   };
 
   const handlePrev = () => {
-    if (!selected) return;
+    if (!selected || !selected.tracks || selected.tracks.length === 0) return;
     if (activeTrackIndex > 0) {
       setActiveTrackIndex(prev => prev - 1);
     } else {
@@ -170,7 +271,13 @@ export default function VinylVault() {
   };
 
   const handleVaultToggle = (album, artistName) => {
+    if (!isLoggedIn) {
+      setView('login');
+      return;
+    }
+
     const exists = collection.find(a => a.title === album.title);
+
     if (exists) {
       const newCollection = collection.filter(a => a.title !== album.title);
       setCollection(newCollection);
@@ -181,20 +288,23 @@ export default function VinylVault() {
       }
     } else {
       const newAlbum = { 
-        ...album, 
-        artist: artistName, 
-        id: Date.now(),
-        rating: 0,
+        id: Date.now().toString(),
+        title: album.title,
+        artist: artistName || album.artist, 
+        cover: album.cover,
+        rating: 5,
         liked: false,
-        review: ""
+        review: "",
+        tracks: album.tracks
       };
       setCollection([...collection, newAlbum]);
       if (!selected) setSelected(newAlbum);
     }
   };
 
-  // --- FEED & INTERACTION HANDLERS ---
   const updateAlbumData = (updates) => {
+    if (!selected) return;
+
     const updatedCollection = collection.map(a => 
       a.title === selected.title ? { ...a, ...updates } : a
     );
@@ -207,53 +317,23 @@ export default function VinylVault() {
         setView('login');
         return;
     }
+    if (!selected) return;
+
     const newEntry = {
-        id: Date.now(),
+        id: Date.now().toString(),
         username: user.username,
         albumTitle: selected.title,
         artist: selected.artist,
         cover: selected.cover,
-        rating: selected.rating,
+        rating: selected.rating || 5, 
         comment: reviewText,
-        timestamp: "Just now"
+        timestamp: new Date().toLocaleDateString()
     };
+    
     setFeed([newEntry, ...feed]);
     updateAlbumData({ review: reviewText });
     setView('activity');
-  };
-
-  const handleSignUpSubmit = (e) => {
-    e.preventDefault();
-    if (registeredUsers.find(u => u.email === email || u.username === username)) {
-      setAuthError("Email or Username already taken!");
-      return;
-    }
-    const newUser = { email, password, name: username, username };
-    setRegisteredUsers([...registeredUsers, newUser]);
-    setIsLoggedIn(true);
-    setUser(newUser);
-    setView('player');
-    setAuthError("");
-  };
-
-  const handleLoginSubmit = (e) => {
-    e.preventDefault();
-    const validUser = registeredUsers.find(u => u.email === email && u.password === password);
-    if (validUser) {
-      setIsLoggedIn(true);
-      setUser(validUser);
-      setView('player');
-      setAuthError("");
-    } else {
-      setAuthError("Invalid email or password.");
-    }
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUser(null);
-    setView('genres');
-    setShowProfileMenu(false);
+    setReviewText("");
   };
 
   return (
@@ -267,7 +347,7 @@ export default function VinylVault() {
 
       {/* NAVBAR */}
       <nav className="sticky top-0 z-50 bg-[#080808]/90 backdrop-blur-xl border-b border-white/5 px-8 py-5 flex items-center justify-between">
-        <h1 onClick={() => setView('player')} className="text-3xl tracking-tight text-amber-500 cursor-pointer" style={{ fontFamily: "'Permanent Marker', cursive" }}>
+        <h1 onClick={() => setView('genres')} className="text-3xl tracking-tight text-amber-500 cursor-pointer" style={{ fontFamily: "'Permanent Marker', cursive" }}>
           Vinyl Vault
         </h1>
         <div className="flex items-center gap-8 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
@@ -331,13 +411,13 @@ export default function VinylVault() {
                        {album.liked && <Heart size={8} className="fill-red-500 text-red-500" />}
                     </div>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); handleVaultToggle(album); }} className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-opacity"><X size={14} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); handleVaultToggle(album, album.artist); }} className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-opacity"><X size={14} /></button>
                 </motion.div>
               ))
             )}
           </aside>
 
-          {/* MAIN CONTENT Area */}
+          {/* MAIN CONTENT AREA */}
           <section className="xl:col-span-9">
             <AnimatePresence mode="wait">
               
@@ -358,7 +438,9 @@ export default function VinylVault() {
 
                       <div className="w-full text-center lg:text-left">
                         <div className="flex items-center justify-center lg:justify-start gap-4 mb-1">
-                           <h2 className="text-5xl font-black tracking-tighter">{selected.tracks[activeTrackIndex].name}</h2>
+                           <h2 className="text-5xl font-black tracking-tighter">
+                             {selected.tracks?.[activeTrackIndex]?.name || selected.title}
+                           </h2>
                            <button onClick={() => updateAlbumData({ liked: !selected.liked })} className="transition-transform active:scale-90">
                               <Heart size={28} className={selected.liked ? "fill-red-500 text-red-500" : "text-zinc-700 hover:text-zinc-500"} />
                            </button>
@@ -382,7 +464,7 @@ export default function VinylVault() {
                         </div>
                         
                         <div className="space-y-2 max-h-40 overflow-y-auto pr-2 bg-black/20 rounded-2xl p-4 border border-white/5">
-                          {selected.tracks.map((t, i) => (
+                          {selected.tracks?.map((t, i) => (
                             <div key={i} onClick={() => setActiveTrackIndex(i)} className={`flex justify-between text-[11px] py-2 border-b border-white/5 cursor-pointer transition-all ${activeTrackIndex === i ? 'text-amber-500' : 'opacity-40 hover:opacity-100'}`}>
                               <span>{i+1}. {t.name}</span>
                             </div>
@@ -409,7 +491,7 @@ export default function VinylVault() {
                                    />
                                 </button>
                              ))}
-                             <span className="ml-4 text-2xl font-black text-amber-500/40 font-mono">{selected.rating}.0</span>
+                             <span className="ml-4 text-2xl font-black text-amber-500/40 font-mono">{selected.rating || 5}.0</span>
                           </div>
                        </div>
 
@@ -475,11 +557,11 @@ export default function VinylVault() {
                 </motion.div>
               )}
 
-              {/* OTHER VIEWS */}
+              {/* LOGIN VIEW */}
               {view === 'login' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 text-center">
                    <h2 className="text-4xl font-black mb-6">Welcome Back</h2>
-                   <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
+                   <form onSubmit={handleTransientLogin} className="space-y-4 text-left">
                       <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
                       <input required type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm focus:border-amber-500 outline-none placeholder:text-zinc-700" />
                       {authError && <p className="text-red-500 text-[10px] font-bold uppercase">{authError}</p>}
@@ -489,6 +571,7 @@ export default function VinylVault() {
                 </motion.div>
               )}
 
+              {/* SIGNUP VIEW */}
               {view === 'signup' && (
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl text-center">
                    <h2 className="text-4xl font-black mb-2 italic tracking-tighter">Join Vault</h2>
@@ -503,48 +586,75 @@ export default function VinylVault() {
                 </motion.div>
               )}
 
+              {/* GENRES VIEW WITH SEARCH */}
               {view === 'genres' && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {GENRE_DATA.map((g) => (
-                    <div key={g.name} className="space-y-6">
-                      <h3 className="text-amber-500 font-bold uppercase tracking-widest text-[10px] border-l-2 border-amber-500 pl-4">{g.name}</h3>
-                      {g.artists.map((artist) => (
-                        <div key={artist.name} className="bg-white/[0.03] p-5 rounded-3xl border border-white/5 space-y-4">
-                          <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider">{artist.name}</p>
-                          {artist.albums.map((album) => {
-                            const isAdded = collection.find(a => a.title === album.title);
-                            return (
-                              <div key={album.title} className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                  <img src={album.cover} className="w-12 h-12 rounded-lg object-cover shadow-lg" />
-                                  <span className="text-sm font-bold">{album.title}</span>
-                                </div>
-                                <button onClick={() => handleVaultToggle(album, artist.name)} className={`p-2 rounded-full border transition-all ${isAdded ? 'bg-amber-500 text-black' : 'hover:bg-amber-500 border-white/10'}`}>
-                                  {isAdded ? <Check size={14}/> : <Plus size={14}/>}
-                                </button>
-                              </div>
-                            );
-                          })}
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
+                  <div className="relative max-w-md mx-auto lg:mx-0">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={18} />
+                    <input 
+                      type="text" 
+                      placeholder="Search artists or genres..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-amber-500 outline-none transition-all placeholder:text-zinc-700 focus:bg-white/[0.05]"
+                    />
+                    {searchTerm && (
+                      <button onClick={() => setSearchTerm("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white">
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {filteredGenres.length > 0 ? (
+                      filteredGenres.map((g) => (
+                        <div key={g.name} className="space-y-6">
+                          <h3 className="text-amber-500 font-bold uppercase tracking-widest text-[10px] border-l-2 border-amber-500 pl-4">{g.name}</h3>
+                          {g.artists.map((artist) => (
+                            <div key={artist.name} className="bg-white/[0.03] p-5 rounded-3xl border border-white/5 space-y-4">
+                              <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider">{artist.name}</p>
+                              {artist.albums.map((album) => {
+                                const isAdded = collection.find(a => a.title === album.title);
+                                return (
+                                  <div key={album.title} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                      <img src={album.cover} className="w-12 h-12 rounded-lg object-cover shadow-lg" />
+                                      <span className="text-sm font-bold">{album.title}</span>
+                                    </div>
+                                    <button onClick={() => handleVaultToggle(album, artist.name)} className={`p-2 rounded-full border transition-all ${isAdded ? 'bg-amber-500 text-black' : 'hover:bg-amber-500 border-white/10'}`}>
+                                      {isAdded ? <Check size={14}/> : <Plus size={14}/>}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  ))}
+                      ))
+                    ) : (
+                      <div className="col-span-full py-20 text-center opacity-30">
+                        <Search size={48} className="mx-auto mb-4" />
+                        <p className="text-xs font-bold uppercase tracking-[0.2em]">No matching artists found</p>
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
               )}
 
+              {/* SETTINGS VIEW */}
               {view === 'settings' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="max-w-2xl bg-white/[0.02] border border-white/5 rounded-[40px] p-10 backdrop-blur-3xl">
                   <h2 className="text-3xl font-black mb-10 tracking-tight">System Preferences</h2>
                   <div className="space-y-8">
                     <section>
-                      <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-4">Identity</p>
+                      <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider mb-4">Identity</p>
                       <div className="p-6 bg-white/[0.03] rounded-3xl border border-white/5 flex items-center justify-between">
                         <span className="text-sm text-zinc-300">{isLoggedIn ? `Authenticated as @${user.username}` : "Local Guest Access"}</span>
                         {!isLoggedIn && <button onClick={() => setView('login')} className="text-amber-500 text-[10px] font-bold uppercase tracking-widest hover:underline">Link Account</button>}
                       </div>
                     </section>
                     <section>
-                      <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-4">Playback Engine</p>
+                      <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider mb-4">Playback Engine</p>
                       <div className="space-y-3">
                         {['Lossless Audio Quality', 'Automatic Needle Physics', 'Vinyl Surface Texture'].map(pref => (
                           <div key={pref} className="p-4 bg-white/[0.01] rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-white/[0.03] transition-all">
@@ -558,6 +668,7 @@ export default function VinylVault() {
                 </motion.div>
               )}
 
+              {/* ABOUT VIEW */}
               {view === 'about' && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-3xl mx-auto space-y-12">
                   <div className="text-center space-y-4">
