@@ -4,139 +4,12 @@ import {
   Play, Pause, Music, Search, Plus, Check, X, Settings, 
   LogIn, UserPlus, LogOut, SkipBack, SkipForward, Heart, Info, Star, MessageSquare, Activity
 } from 'lucide-react';
-
-// STABLE MASTER CATALOG RESOURCE - NO API REQUIRED
-const STATIC_CATALOG = [
-  {
-    name: "Indie Rock",
-    artists: [
-      {
-        name: "The Strokes",
-        albums: [{
-          title: "Is This It",
-          cover: "https://vinyldiscos.b-cdn.net/covers/is_this_it.png",
-          tracks: [
-            { name: "Is This It", audio: "https://vinyldiscos.b-cdn.net/previews/is_this_it.mp3" },
-            { name: "The Modern Age", audio: "https://vinyldiscos.b-cdn.net/previews/modern_age.mp3" },
-            { name: "Soma", audio: "https://vinyldiscos.b-cdn.net/previews/soma.mp3" },
-            { name: "Barely Legal", audio: "https://vinyldiscos.b-cdn.net/previews/barely_legal.mp3" }
-          ]
-        }]
-      },
-      {
-        name: "The Symposium",
-        albums: [{
-          title: "The Symposium",
-          cover: "https://vinyldiscos.b-cdn.net/covers/the_symposium.png",
-          tracks: [
-            { name: "The Physical Attractions", audio: "https://vinyldiscos.b-cdn.net/previews/the_physical_attractions.mp3" }
-          ]
-        }]
-      },
-      {
-        name: "Arctic Monkeys",
-        albums: [{
-          title: "AM",
-          cover: "https://vinyldiscos.b-cdn.net/covers/arctic_monkeys_am.png",
-          tracks: [
-            { name: "Do I Wanna Know?", audio: "https://vinyldiscos.b-cdn.net/previews/do_i_wanna_know.mp3" },
-            { name: "Knee Socks", audio: "https://vinyldiscos.b-cdn.net/previews/knee_socks.mp3" }
-          ]
-        }]
-      },
-      {
-        name: "Tame Impala",
-        albums: [{
-          title: "Currents",
-          cover: "https://vinyldiscos.b-cdn.net/covers/tame_impala_currents.png",
-          tracks: [
-            { name: "The Less I Know The Better", audio: "https://vinyldiscos.b-cdn.net/previews/the_less_i_know.mp3" }
-          ]
-        }]
-      }
-    ]
-  },
-  {
-    name: "Classic Rock",
-    artists: [
-      {
-        name: "The Beatles",
-        albums: [{
-          title: "Abbey Road",
-          cover: "https://vinyldiscos.b-cdn.net/covers/the_beatles_abbey_road.png",
-          tracks: [
-            { name: "Come Together", audio: "https://vinyldiscos.b-cdn.net/previews/come_together.mp3" },
-            { name: "Something", audio: "https://vinyldiscos.b-cdn.net/previews/something.mp3" }
-          ]
-        }]
-      },
-      {
-        name: "Pink Floyd",
-        albums: [{
-          title: "The Dark Side of the Moon",
-          cover: "https://vinyldiscos.b-cdn.net/covers/pink_floyd_dark_side.png",
-          tracks: [
-            { name: "Breathe (In the Air)", audio: "https://vinyldiscos.b-cdn.net/previews/breathe.mp3" },
-            { name: "Money", audio: "https://vinyldiscos.b-cdn.net/previews/money.mp3" }
-          ]
-        }]
-      }
-    ]
-  },
-  {
-    name: "Indie / Alt",
-    artists: [
-      {
-        name: "Peach Pit",
-        albums: [{
-          title: "Being So Normal",
-          cover: "https://vinyldiscos.b-cdn.net/covers/peach_pit_being_so_normal.png",
-          tracks: [
-            { name: "Peach Pit", audio: "https://vinyldiscos.b-cdn.net/previews/peach_pit.mp3" },
-            { name: "Tommy's Party", audio: "https://vinyldiscos.b-cdn.net/previews/tommys_party.mp3" }
-          ]
-        }]
-      },
-      {
-        name: "Steve Lacy",
-        albums: [{
-          title: "Gemini Rights",
-          cover: "https://vinyldiscos.b-cdn.net/covers/steve_lacy_gemini.png",
-          tracks: [
-            { name: "Bad Habit", audio: "https://vinyldiscos.b-cdn.net/previews/bad_habit.mp3" },
-            { name: "Static", audio: "https://vinyldiscos.b-cdn.net/previews/static.mp3" }
-          ]
-        }]
-      }
-    ]
-  }
-];
+const API_URL = "https://vinyl-vault-backend.onrender.com"; // 👈 REPLACE THIS with the actual live URL Render gave you!
 
 export default function VinylVault() {
-  // --- STATE LAYER WITH BROWSERS-CACHE RECOVERY ENGINE ---
-  const [genreData] = useState(STATIC_CATALOG); 
-  
-  const [user, setUser] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return JSON.parse(localStorage.getItem('vv_active_user')) || null;
-    }
-    return null;
-  });
-
-  const [collection, setCollection] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return JSON.parse(localStorage.getItem('vv_collection')) || [];
-    }
-    return [];
-  });
-
-  const [feed, setFeed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return JSON.parse(localStorage.getItem('vv_feed')) || [];
-    }
-    return [];
-  });
-
+  // --- CORE STATE ---
+  const [genreData, setGenreData] = useState([]); 
+  const [collection, setCollection] = useState([]);
   const [view, setView] = useState('genres'); 
   const [selected, setSelected] = useState(null);
   const [activeTrackIndex, setActiveTrackIndex] = useState(0);
@@ -145,70 +18,23 @@ export default function VinylVault() {
   const [duration, setDuration] = useState(0);
   const audioRef = useRef(null);
 
-  // --- INTERFACE MUTATION UTILS ---
+  // --- SEARCH STATE ---
   const [searchTerm, setSearchTerm] = useState("");
+
+  // --- INTERACTION & FEED STATE ---
   const [hoverStar, setHoverStar] = useState(0);
   const [reviewText, setReviewText] = useState("");
+  const [feed, setFeed] = useState([]);
+
+  // --- AUTH & LIVE MONGO DB STATE ---
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [user, setUser] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState(""); 
   const [authError, setAuthError] = useState("");
 
   const isLoggedIn = !!user;
-
-  // Sync mutations instantly back down to local storage blocks
-  useEffect(() => {
-    localStorage.setItem('vv_collection', JSON.stringify(collection));
-  }, [collection]);
-
-  useEffect(() => {
-    localStorage.setItem('vv_feed', JSON.stringify(feed));
-  }, [feed]);
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('vv_active_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('vv_active_user');
-    }
-  }, [user]);
-
-  // --- LOCAL ARCHITECTURE SIMULATION AUTHS ---
-  const handleSignUpSubmit = (e) => {
-    e.preventDefault();
-    if (!username || !email || !password) {
-      setAuthError("Please fill out all fields.");
-      return;
-    }
-    const mockUser = { id: Date.now().toString(), username: username, email: email };
-    setUser(mockUser);
-    setView('genres');
-    setAuthError("");
-    setUsername(""); setEmail(""); setPassword("");
-  };
-
-  const handleTransientLogin = (e) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setAuthError("Please provide an email and password.");
-      return;
-    }
-    const safeName = email.split('@')[0];
-    const mockUser = { id: "user_123", username: safeName, email: email };
-    setUser(mockUser);
-    setView('genres');
-    setAuthError("");
-    setEmail(""); setPassword("");
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setCollection([]);
-    setSelected(null);
-    setView('genres');
-    setShowProfileMenu(false);
-  };
 
   // --- FILTER LOGIC FOR GENRES ---
   const filteredGenres = (genreData || []).map(genre => ({
@@ -221,10 +47,40 @@ export default function VinylVault() {
 
   const formatTime = (t) => `${Math.floor(t / 60)}:${Math.floor(t % 60).toString().padStart(2, '0')}`;
 
-  // AUDIO SYNCHRONIZATION RUNTIME
+  // LIVE DATABASE PIPELINE: LOAD GLOBAL CATALOG FROM MONGODB ATLAS
+  useEffect(() => {
+    const loadLiveCatalog = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/catalog');
+        if (response.ok) {
+          const liveMusicTree = await response.json();
+          setGenreData(liveMusicTree);
+        }
+      } catch (err) {
+        console.error("Could not sync master music storefront:", err);
+      }
+    };
+    loadLiveCatalog();
+  }, []);
+
+  // AUDIO SYNCHRONIZATION WITH RUNTIME FALLBACK TRACK COPIER
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !selected) return;
+
+    if (!selected.tracks || selected.tracks.length === 0) {
+      let foundTracks = [];
+      genreData.forEach(genre => {
+        genre.artists.forEach(artist => {
+          artist.albums.forEach(album => {
+            if (album.title.toLowerCase() === selected.title.toLowerCase()) {
+              foundTracks = album.tracks;
+            }
+          });
+        });
+      });
+      selected.tracks = foundTracks;
+    }
 
     audio.pause();
     if (selected.tracks && selected.tracks.length > 0) {
@@ -233,7 +89,61 @@ export default function VinylVault() {
       if (isPlaying) audio.play().catch(() => setIsPlaying(false));
     }
     setReviewText(selected.review || "");
-  }, [selected, activeTrackIndex]);
+  }, [selected, activeTrackIndex, genreData]);
+
+  // LIVE DATABASE PIPELINE: FETCH VAULT ARCHIVE ON AUTH SUCCESS
+  useEffect(() => {
+    const fetchUserVault = async () => {
+      if (!isLoggedIn || !user || !user.id) return;
+      try {
+        const response = await fetch(`http://localhost:5000/api/vault/${user.id}`);
+        if (response.ok) {
+          const userVaultData = await response.json();
+          const formattedCollection = userVaultData.map(item => ({
+            id: item._id,
+            title: item.albumTitle,
+            artist: item.artistName,
+            cover: item.coverUrl,
+            liked: item.isLiked,
+            rating: item.personalRating,
+            review: "" 
+          }));
+          setCollection(formattedCollection);
+        }
+      } catch (err) {
+        console.error("Failed to fetch custom collection:", err);
+      }
+    };
+
+    fetchUserVault();
+  }, [isLoggedIn, user]);
+
+  // LIVE DATABASE PIPELINE: FEED FETCH ENGINE
+  useEffect(() => {
+    const loadGlobalFeed = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/feed');
+        if (response.ok) {
+          const databaseFeed = await response.json();
+          const formattedFeed = databaseFeed.map(post => ({
+            id: post._id,
+            username: post.username,
+            albumTitle: post.albumTitle,
+            artist: post.artistName,
+            cover: post.coverUrl,
+            rating: post.rating,
+            comment: post.comment,
+            timestamp: new Date(post.timestamp).toLocaleDateString()
+          }));
+          setFeed(formattedFeed);
+        }
+      } catch (err) {
+        console.error("Failed to load community timeline:", err);
+      }
+    };
+
+    loadGlobalFeed();
+  }, [view]);
 
   const togglePlay = () => {
     if (!selected || !selected.tracks || selected.tracks.length === 0) return;
@@ -270,7 +180,7 @@ export default function VinylVault() {
     audioRef.current.currentTime += amount;
   };
 
-  const handleVaultToggle = (album, artistName) => {
+  const handleVaultToggle = async (album, artistName) => {
     if (!isLoggedIn) {
       setView('login');
       return;
@@ -279,62 +189,202 @@ export default function VinylVault() {
     const exists = collection.find(a => a.title === album.title);
 
     if (exists) {
-      const newCollection = collection.filter(a => a.title !== album.title);
-      setCollection(newCollection);
-      if (selected?.title === album.title) {
-        setSelected(newCollection.length > 0 ? newCollection[0] : null);
-        setActiveTrackIndex(0);
-        setIsPlaying(false);
+      try {
+        const response = await fetch(`http://localhost:5000/api/vault/${exists.id}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          const newCollection = collection.filter(a => a.title !== album.title);
+          setCollection(newCollection);
+          if (selected?.title === album.title) {
+            setSelected(newCollection.length > 0 ? newCollection[0] : null);
+            setActiveTrackIndex(0);
+            setIsPlaying(false);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to clear database item:", err);
       }
     } else {
-      const newAlbum = { 
-        id: Date.now().toString(),
-        title: album.title,
-        artist: artistName || album.artist, 
-        cover: album.cover,
-        rating: 5,
-        liked: false,
-        review: "",
-        tracks: album.tracks
-      };
-      setCollection([...collection, newAlbum]);
-      if (!selected) setSelected(newAlbum);
+      try {
+        const response = await fetch('http://localhost:5000/api/vault/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            albumTitle: album.title,
+            artistName: artistName || album.artist,
+            coverUrl: album.cover
+          })
+        });
+
+        const savedItem = await response.json();
+
+        if (response.ok) {
+          const newAlbum = { 
+            title: savedItem.albumTitle,
+            artist: savedItem.artistName, 
+            cover: savedItem.coverUrl,
+            id: savedItem._id, 
+            rating: savedItem.personalRating,
+            liked: savedItem.isLiked,
+            review: ""
+          };
+          setCollection([...collection, newAlbum]);
+          if (!selected) setSelected(newAlbum);
+        }
+      } catch (err) {
+        console.error("Failed to register item inside schema:", err);
+      }
     }
   };
 
-  const updateAlbumData = (updates) => {
-    if (!selected) return;
+  const updateAlbumData = async (updates) => {
+    if (!selected || !selected.id) return;
 
     const updatedCollection = collection.map(a => 
       a.title === selected.title ? { ...a, ...updates } : a
     );
     setCollection(updatedCollection);
     setSelected({ ...selected, ...updates });
+
+    try {
+      await fetch(`http://localhost:5000/api/vault/${selected.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isLiked: updates.liked !== undefined ? updates.liked : selected.liked,
+          personalRating: updates.rating !== undefined ? updates.rating : selected.rating
+        })
+      });
+    } catch (err) {
+      console.error("Failed to commit settings mutations:", err);
+    }
   };
 
-  const handlePostReview = () => {
+  const handlePostReview = async () => {
     if (!isLoggedIn) {
         setView('login');
         return;
     }
     if (!selected) return;
 
-    const newEntry = {
-        id: Date.now().toString(),
-        username: user.username,
-        albumTitle: selected.title,
-        artist: selected.artist,
-        cover: selected.cover,
-        rating: selected.rating || 5, 
-        comment: reviewText,
-        timestamp: new Date().toLocaleDateString()
-    };
-    
-    setFeed([newEntry, ...feed]);
-    updateAlbumData({ review: reviewText });
-    setView('activity');
-    setReviewText("");
+    try {
+      const response = await fetch('http://localhost:5000/api/feed/post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          authorId: user.id,
+          username: user.username,
+          albumTitle: selected.title,
+          artistName: selected.artist,
+          coverUrl: selected.cover,
+          rating: selected.rating || 5, 
+          comment: reviewText
+        })
+      });
+
+      const savedPost = await response.json();
+
+      if (response.ok) {
+        const newEntry = {
+            id: savedPost._id,
+            username: savedPost.username,
+            albumTitle: savedPost.albumTitle,
+            artist: savedPost.artistName,
+            cover: savedPost.coverUrl,
+            rating: savedPost.rating,
+            comment: savedPost.comment,
+            timestamp: "Just now"
+        };
+        
+        setFeed([newEntry, ...feed]);
+        updateAlbumData({ review: reviewText });
+        setView('activity');
+        setReviewText("");
+      }
+    } catch (err) {
+      console.error("Failed to push comment object:", err);
+    }
   };
+
+  const handleSignUpSubmit = async (e) => {
+    e.preventDefault();
+    setAuthError("");
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAuthError(data.message || "Registration failed");
+        return;
+      }
+
+      setUser(data.user);
+      localStorage.setItem('vv_token', data.token); 
+      setView('player');
+      setUsername("");
+      setEmail("");
+      setPassword("");
+    } catch (err) {
+      setAuthError("Could not connect to backend server.");
+    }
+  };
+
+  const handleTransientLogin = async (e) => {
+    e.preventDefault();
+    setAuthError("");
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAuthError(data.message || "Invalid email or password.");
+        return;
+      }
+
+      setUser(data.user);
+      localStorage.setItem('vv_token', data.token);
+      setView('player');
+      setEmail("");
+      setPassword("");
+    } catch (err) {
+      setAuthError("Could not connect to backend server.");
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setCollection([]);
+    setSelected(null);
+    localStorage.removeItem('vv_token');
+    setView('genres');
+    setShowProfileMenu(false);
+  };
+
+  if (!genreData || genreData.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#080808] flex flex-col items-center justify-center text-amber-500 font-sans">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mb-4"></div>
+        <p className="text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">
+          Streaming Active Catalog from Spotify API...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#080808] text-[#f0f0f0] font-sans selection:bg-amber-500/30 relative overflow-hidden">
@@ -468,7 +518,7 @@ export default function VinylVault() {
                             <div key={i} onClick={() => setActiveTrackIndex(i)} className={`flex justify-between text-[11px] py-2 border-b border-white/5 cursor-pointer transition-all ${activeTrackIndex === i ? 'text-amber-500' : 'opacity-40 hover:opacity-100'}`}>
                               <span>{i+1}. {t.name}</span>
                             </div>
-                          ))}
+                          )) || <p className="text-xs text-zinc-600 italic p-2">Loading track database lists...</p>}
                         </div>
                       </div>
                     </motion.div>
@@ -491,7 +541,7 @@ export default function VinylVault() {
                                    />
                                 </button>
                              ))}
-                             <span className="ml-4 text-2xl font-black text-amber-500/40 font-mono">{selected.rating || 5}.0</span>
+                             <span className="ml-4 text-2xl font-black text-amber-500/40 font-mono">{selected.rating}.0</span>
                           </div>
                        </div>
 
