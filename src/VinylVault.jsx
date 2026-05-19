@@ -34,6 +34,16 @@ export default function VinylVault() {
   const [username, setUsername] = useState(""); 
   const [authError, setAuthError] = useState("");
 
+  // --- NEW PREFERENCES STATE ENGINE ---
+  const [isLossless, setIsLossless] = useState(true);
+  const [isNeedlePhysicsAuto, setIsNeedlePhysicsAuto] = useState(true);
+  const [isSurfaceTextureEnabled, setIsSurfaceTextureEnabled] = useState(true);
+
+  // --- AUDIO PROCESSING AND EQ EFFECTS ---
+  const audioContextRef = useRef(null);
+  const biquadFilterRef = useRef(null);
+  const sourceNodeRef = useRef(null);
+
   const isLoggedIn = !!user;
 
   // --- FILTER LOGIC FOR GENRES ---
@@ -145,8 +155,43 @@ export default function VinylVault() {
     loadGlobalFeed();
   }, [view]);
 
+  // --- EQUALIZER HARDWARE HARNESS ---
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    if (!audioContextRef.current) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        audioContextRef.current = new AudioContext();
+        biquadFilterRef.current = audioContextRef.current.createBiquadFilter();
+        sourceNodeRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
+        
+        sourceNodeRef.current.connect(biquadFilterRef.current);
+        biquadFilterRef.current.connect(audioContextRef.current.destination);
+      }
+    }
+
+    if (biquadFilterRef.current) {
+      if (isLossless) {
+        biquadFilterRef.current.type = 'peaking';
+        biquadFilterRef.current.frequency.value = 1000;
+        biquadFilterRef.current.Q.value = 1;
+        biquadFilterRef.current.gain.value = 0; // Pure Pass-Through Flat Curve
+      } else {
+        biquadFilterRef.current.type = 'lowshelf';
+        biquadFilterRef.current.frequency.value = 250;
+        biquadFilterRef.current.gain.value = 7; // Enhanced Warm Bass Signature
+      }
+    }
+  }, [isLossless, selected]);
+
   const togglePlay = () => {
     if (!selected || !selected.tracks || selected.tracks.length === 0) return;
+    
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+
     if (isPlaying) {
       audioRef.current?.pause();
       setIsPlaying(false);
@@ -481,8 +526,23 @@ export default function VinylVault() {
                             <motion.div animate={{ rotate: isPlaying ? 360 : 0 }} transition={{ duration: 4, repeat: Infinity, ease: "linear", repeatType: "loop" }} className="w-64 h-64 rounded-full bg-black flex items-center justify-center relative overflow-hidden">
                               <div className="absolute inset-0 bg-[repeating-radial-gradient(circle,_transparent_0,_transparent_2px,_rgba(255,255,255,0.03)_3px)] opacity-40" />
                               <img src={selected.cover} className="w-28 h-28 rounded-full border-[6px] border-black z-20 object-cover" />
+                              
+                              {/* PROCEDURAL AUDIO INDUCED STATIC NOISE CANVAS */}
+                              {isSurfaceTextureEnabled && isPlaying && (
+                                <motion.div 
+                                  animate={{ opacity: [0.15, 0.3, 0.12, 0.25, 0.18] }} 
+                                  transition={{ duration: 0.4, repeat: Infinity, ease: "linear" }} 
+                                  className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.15)_1px,_transparent_1px)] bg-[size:12px_12px] z-10 pointer-events-none mix-blend-screen"
+                                />
+                              )}
                             </motion.div>
-                            <motion.div animate={{ rotate: isPlaying ? -25 : 0 }} transition={{ type: "spring", stiffness: 30, damping: 12 }} className="absolute top-8 right-0 w-44 h-3 bg-gradient-to-r from-zinc-500 to-zinc-700 origin-right rounded-full z-30 shadow-xl" />
+                            
+                            {/* DYNAMIC MECHANICAL TONEARM INTERACTION */}
+                            <motion.div 
+                              animate={{ rotate: isNeedlePhysicsAuto ? (isPlaying ? -25 : 0) : -25 }} 
+                              transition={{ type: "spring", stiffness: 30, damping: 12 }} 
+                              className="absolute top-8 right-0 w-44 h-3 bg-gradient-to-r from-zinc-500 to-zinc-700 origin-right rounded-full z-30 shadow-xl" 
+                            />
                         </div>
                       </div>
 
@@ -518,7 +578,7 @@ export default function VinylVault() {
                             <div key={i} onClick={() => setActiveTrackIndex(i)} className={`flex justify-between text-[11px] py-2 border-b border-white/5 cursor-pointer transition-all ${activeTrackIndex === i ? 'text-amber-500' : 'opacity-40 hover:opacity-100'}`}>
                               <span>{i+1}. {t.name}</span>
                             </div>
-                          )) || <p className="text-xs text-zinc-600 italic p-2">Loading track database lists...</p>}
+                          ))}
                         </div>
                       </div>
                     </motion.div>
@@ -703,15 +763,59 @@ export default function VinylVault() {
                         {!isLoggedIn && <button onClick={() => setView('login')} className="text-amber-500 text-[10px] font-bold uppercase tracking-widest hover:underline">Link Account</button>}
                       </div>
                     </section>
+                    
                     <section>
                       <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider mb-4">Playback Engine</p>
                       <div className="space-y-3">
-                        {['Lossless Audio Quality', 'Automatic Needle Physics', 'Vinyl Surface Texture'].map(pref => (
-                          <div key={pref} className="p-4 bg-white/[0.01] rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-white/[0.03] transition-all">
-                            <span className="text-sm text-zinc-400">{pref}</span>
-                            <div className="w-10 h-5 bg-amber-500 rounded-full flex items-center justify-end px-1"><div className="w-3 h-3 bg-white rounded-full shadow-md" /></div>
+                        
+                        {/* FUNCTIONAL BUTTON 1: LOSSLESS PASS-THROUGH / BASS BOOST MIXER */}
+                        <div className="p-4 bg-white/[0.01] rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-white/[0.03] transition-all">
+                          <div className="flex flex-col">
+                            <span className="text-sm text-zinc-400">Lossless Audio Quality</span>
+                            <span className="text-[10px] text-zinc-600 font-mono mt-0.5">
+                              {isLossless ? "FLAT EQ PASS-THROUGH ACTIVE" : "LOW-SHELF 250HZ WARM PRE-AMP SIGNATURE"}
+                            </span>
                           </div>
-                        ))}
+                          <button 
+                            onClick={() => setIsLossless(!isLossless)}
+                            className={`w-10 h-5 rounded-full flex items-center px-1 transition-colors duration-300 ${isLossless ? 'bg-amber-500 justify-end' : 'bg-zinc-800 justify-start'}`}
+                          >
+                            <div className="w-3 h-3 bg-white rounded-full shadow-md" />
+                          </button>
+                        </div>
+
+                        {/* FUNCTIONAL BUTTON 2: AUTOMATIC NEEDLE TONEARM SPRING ACTUATOR */}
+                        <div className="p-4 bg-white/[0.01] rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-white/[0.03] transition-all">
+                          <div className="flex flex-col">
+                            <span className="text-sm text-zinc-400">Automatic Needle Physics</span>
+                            <span className="text-[10px] text-zinc-600 font-mono mt-0.5">
+                              {isNeedlePhysicsAuto ? "ENGAGE MOTOR HARNESS ON PLAY/PAUSE" : "ARM PERMANENTLY ANCHORED OVER TRACK"}
+                            </span>
+                          </div>
+                          <button 
+                            onClick={() => setIsNeedlePhysicsAuto(!isNeedlePhysicsAuto)}
+                            className={`w-10 h-5 rounded-full flex items-center px-1 transition-colors duration-300 ${isNeedlePhysicsAuto ? 'bg-amber-500 justify-end' : 'bg-zinc-800 justify-start'}`}
+                          >
+                            <div className="w-3 h-3 bg-white rounded-full shadow-md" />
+                          </button>
+                        </div>
+
+                        {/* FUNCTIONAL BUTTON 3: PROCEDURAL SURFACE NOISE GENERATION MASK */}
+                        <div className="p-4 bg-white/[0.01] rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-white/[0.03] transition-all">
+                          <div className="flex flex-col">
+                            <span className="text-sm text-zinc-400">Vinyl Surface Texture</span>
+                            <span className="text-[10px] text-zinc-600 font-mono mt-0.5">
+                              {isSurfaceTextureEnabled ? "CRACKLE PRE-AMP NOISE SEED VISIBLE" : "STATIC MASK BLINDED"}
+                            </span>
+                          </div>
+                          <button 
+                            onClick={() => setIsSurfaceTextureEnabled(!isSurfaceTextureEnabled)}
+                            className={`w-10 h-5 rounded-full flex items-center px-1 transition-colors duration-300 ${isSurfaceTextureEnabled ? 'bg-amber-500 justify-end' : 'bg-zinc-800 justify-start'}`}
+                          >
+                            <div className="w-3 h-3 bg-white rounded-full shadow-md" />
+                          </button>
+                        </div>
+
                       </div>
                     </section>
                   </div>
